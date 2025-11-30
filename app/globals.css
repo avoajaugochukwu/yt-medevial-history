@@ -1,0 +1,150 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* Roman/Medieval Historical Theme - Light Mode */
+  /* Parchment background with deep crimson primary */
+  --card: #faf7f0;
+  --card-foreground: #2d1810;
+  --popover: #faf7f0;
+  --popover-foreground: #2d1810;
+  --primary: #8b0000; /* Deep Roman Red */
+  --primary-foreground: #faf7f0;
+  --secondary: #b8860b; /* Dark Gold/Bronze */
+  --secondary-foreground: #2d1810;
+  --muted: #e8e0d5;
+  --muted-foreground: #5d4e37;
+  --accent: #4b0082; /* Royal Purple */
+  --accent-foreground: #faf7f0;
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: #ffffff;
+  --border: #d4c5b0;
+  --input: #e8e0d5;
+  --ring: #8b0000;
+  --radius: 0.625rem;
+  --background: #f4e8d8; /* Parchment */
+  --foreground: #2d1810; /* Dark Brown */
+  --chart-1: #8b0000; /* Roman Red */
+  --chart-2: #b8860b; /* Gold */
+  --chart-3: #4b0082; /* Purple */
+  --chart-4: #556b2f; /* Dark Olive */
+  --chart-5: #8b4513; /* Saddle Brown */
+  --sidebar: #faf7f0;
+  --sidebar-foreground: #2d1810;
+  --sidebar-primary: #8b0000;
+  --sidebar-primary-foreground: #faf7f0;
+  --sidebar-accent: #e8e0d5;
+  --sidebar-accent-foreground: #2d1810;
+  --sidebar-border: #d4c5b0;
+  --sidebar-ring: #8b0000;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-serif: var(--font-cinzel);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --card: #171717;
+    --card-foreground: #ededed;
+    --popover: #171717;
+    --popover-foreground: #ededed;
+    --primary: #3b82f6;
+    --primary-foreground: #ffffff;
+    --secondary: #262626;
+    --secondary-foreground: #ededed;
+    --muted: #262626;
+    --muted-foreground: #a3a3a3;
+    --accent: #262626;
+    --accent-foreground: #ededed;
+    --destructive: #7f1d1d;
+    --destructive-foreground: #ededed;
+    --border: #262626;
+    --input: #262626;
+    --ring: #3b82f6;
+  }
+}
+
+.dark {
+  /* Roman/Medieval Historical Theme - Dark Mode (Marble & Stone) */
+  --background: #1a1a1a; /* Dark Marble */
+  --foreground: #e8e0d5; /* Light Parchment */
+  --card: #242424;
+  --card-foreground: #e8e0d5;
+  --popover: #242424;
+  --popover-foreground: #e8e0d5;
+  --primary: #c41e3a; /* Brighter Roman Red for dark mode */
+  --primary-foreground: #faf7f0;
+  --secondary: #daa520; /* Goldenrod */
+  --secondary-foreground: #1a1a1a;
+  --muted: #2d2d2d;
+  --muted-foreground: #a89f91;
+  --accent: #6a0dad; /* Brighter Purple */
+  --accent-foreground: #faf7f0;
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: #3d3d3d;
+  --input: #2d2d2d;
+  --ring: #c41e3a;
+  --chart-1: #c41e3a; /* Roman Red */
+  --chart-2: #daa520; /* Gold */
+  --chart-3: #6a0dad; /* Purple */
+  --chart-4: #6b8e23; /* Olive Drab */
+  --chart-5: #a0522d; /* Sienna */
+  --sidebar: #242424;
+  --sidebar-foreground: #e8e0d5;
+  --sidebar-primary: #c41e3a;
+  --sidebar-primary-foreground: #faf7f0;
+  --sidebar-accent: #2d2d2d;
+  --sidebar-accent-foreground: #e8e0d5;
+  --sidebar-border: #3d3d3d;
+  --sidebar-ring: #c41e3a;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
