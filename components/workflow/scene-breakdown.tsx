@@ -9,8 +9,21 @@ import { StoryboardGrid } from './scenes/storyboard-grid';
 type ScenePhase = 'analyzing' | 'generating' | 'reviewing';
 
 export function SceneBreakdown() {
-  const { script, scenes } = useSessionStore();
-  const [phase, setPhase] = useState<ScenePhase>('analyzing');
+  const { script, scenes, storyboardScenes } = useSessionStore();
+
+  // Initialize phase based on existing data to prevent re-generation on remount
+  const [phase, setPhase] = useState<ScenePhase>(() => {
+    // If storyboardScenes exist, skip to reviewing phase
+    if (storyboardScenes && storyboardScenes.length > 0) {
+      return 'reviewing';
+    }
+    // If scenes exist but no storyboard yet, skip to generating
+    if (scenes && scenes.length > 0) {
+      return 'generating';
+    }
+    // Otherwise start from analyzing
+    return 'analyzing';
+  });
 
   // If no script, show placeholder
   if (!script) {

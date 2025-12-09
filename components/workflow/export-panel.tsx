@@ -1,15 +1,16 @@
 "use client";
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useSessionStore } from '@/lib/store';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { NavigationButtons } from '@/components/common/navigation-buttons';
 import { ErrorDisplay } from '@/components/common/error-display';
-import { 
-  Download, 
-  FileText, 
+import {
+  Download,
+  FileText,
   FileJson,
   CheckCircle,
   Package,
@@ -18,6 +19,7 @@ import {
 import { createExportZip } from '@/lib/utils/export';
 
 export function ExportPanel() {
+  const router = useRouter();
   const {
     currentStep,
     historicalTopic,
@@ -32,6 +34,10 @@ export function ExportPanel() {
 
   const [isExporting, setIsExporting] = useState(false);
   const [exportComplete, setExportComplete] = useState(false);
+
+  const handlePrevious = () => {
+    router.push('/scenes');
+  };
 
   const getEstimatedSize = () => {
     let size = 0;
@@ -205,6 +211,7 @@ export function ExportPanel() {
       </div>
 
       <NavigationButtons
+        onPrevious={handlePrevious}
         nextDisabled={true}
         nextLabel="Complete"
       />

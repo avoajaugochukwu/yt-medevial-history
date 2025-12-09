@@ -52,7 +52,6 @@ export function NavigationButtons({
       <Button
         variant="outline"
         onClick={handlePrevious}
-        disabled={previousDisabled || currentStep === 1}
       >
         <ChevronLeft className="mr-2 h-4 w-4" />
         Previous
