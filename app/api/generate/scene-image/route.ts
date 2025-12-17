@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fal } from '@fal-ai/client';
 import {
-  OIL_PAINTING_STYLE_SUFFIX,
+  generateStyleSuffix,
   HISTORICAL_MAP_STYLE_SUFFIX,
   NEGATIVE_PROMPT_HISTORICAL,
   NEGATIVE_PROMPT_MAPS,
@@ -17,7 +17,7 @@ interface FalImageResult {
 export async function POST(request: NextRequest) {
   try {
     const requestData = await request.json();
-    const { scene } = requestData;
+    const { scene, artStyle } = requestData;
 
     if (!scene) {
       return NextResponse.json({ error: 'Scene data is required' }, { status: 400 });
@@ -37,13 +37,15 @@ export async function POST(request: NextRequest) {
     const basePrompt = scene.visual_prompt || 'Historical scene';
     const isMapScene = scene.scene_type === 'map';
 
-    // Inject appropriate style suffix: historical map for maps, oil painting for visual scenes
-    const styleSuffix = isMapScene ? HISTORICAL_MAP_STYLE_SUFFIX : OIL_PAINTING_STYLE_SUFFIX;
+    // Inject appropriate style suffix: historical map for maps, AI-generated or default style for visual scenes
+    const styleSuffix = isMapScene ? HISTORICAL_MAP_STYLE_SUFFIX : generateStyleSuffix(artStyle);
     const negativePrompt = isMapScene ? NEGATIVE_PROMPT_MAPS : NEGATIVE_PROMPT_HISTORICAL;
     const styledPrompt = `${basePrompt}${styleSuffix}`;
 
     const sceneTypeLabel = isMapScene ? 'MAP' : 'VISUAL';
+    const styleDescription = artStyle ? 'AI-generated era-appropriate' : 'default oil painting';
     console.log(`[Scene Image] Generating ${sceneTypeLabel} image for scene ${scene.scene_number}`);
+    console.log(`[Scene Image] Using ${styleDescription} style`);
     console.log(`[Scene Image] Prompt length: ${styledPrompt.length} characters`);
 
     // Use nano-banana for fast generation (7-10 seconds) with enhanced prompting

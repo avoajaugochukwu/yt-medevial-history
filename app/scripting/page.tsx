@@ -101,11 +101,15 @@ export default function HistoricalScriptingPage() {
 
       const step1Data = await step1Response.json();
       const research: HistoricalResearch = step1Data.research;
+      const artStyle: string | undefined = step1Data.artStyle;
 
       setResearchData(research);
       updateStepStatus(1, 'completed');
 
       console.log('[Step 1] Historical research completed:', research);
+      if (artStyle) {
+        console.log('[Step 1] Art style generated:', artStyle.substring(0, 100) + '...');
+      }
 
       // ============================================================================
       // STEP 2: Narrative Outline
@@ -168,7 +172,7 @@ export default function HistoricalScriptingPage() {
       console.log('[Step 3] Final script completed:', script);
 
       // Save to store
-      setHistoricalTopic({ title, era, contentType, tone, created_at: new Date() });
+      setHistoricalTopic({ title, era, contentType, tone, created_at: new Date(), artStyle });
       setResearch(research);
       setOutline(outline);
       setScript(script);

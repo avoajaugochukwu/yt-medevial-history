@@ -126,9 +126,44 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Step 3: Generate AI-powered art style based on the era
+    console.log(`[Historical Research] Generating art style for ${era}...`);
+    let artStyle: string | undefined;
+
+    try {
+      const artStyleResponse = await fetch(
+        new URL('/api/generate/art-style', request.url).toString(),
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            era,
+            contentType,
+            title,
+          }),
+        }
+      );
+
+      if (artStyleResponse.ok) {
+        const artStyleData = await artStyleResponse.json();
+        if (artStyleData.success && artStyleData.artStyle) {
+          artStyle = artStyleData.artStyle;
+          console.log(`[Historical Research] Art style generated successfully`);
+        }
+      } else {
+        console.warn('[Historical Research] Art style generation failed, will use default');
+      }
+    } catch (artStyleError) {
+      console.warn('[Historical Research] Art style generation error:', artStyleError);
+      console.warn('[Historical Research] Continuing without custom art style');
+    }
+
     return NextResponse.json({
       success: true,
       research: researchData,
+      artStyle, // Include art style in response
     });
   } catch (error) {
     console.error('[Historical Research] Error:', error);

@@ -494,7 +494,31 @@ Return a JSON array of scenes (ONLY valid JSON, no markdown code blocks):
 // SCENE IMAGE GENERATION - OIL PAINTING STYLE INJECTION
 // ============================================================================
 
-export const OIL_PAINTING_STYLE_SUFFIX = `
+// Dynamic style suffix generator - uses AI-generated art style or falls back to default
+export const generateStyleSuffix = (artStyle?: string): string => {
+  if (artStyle) {
+    // Use AI-generated era-appropriate style
+    return `
+
+STYLE REQUIREMENTS (CRITICAL):
+${artStyle}
+
+ADDITIONAL REQUIREMENTS:
+- Historically accurate costume, architecture, and props
+- 8k resolution, museum quality
+- Realistic faces and anatomy, detailed expressions
+- Atmospheric perspective and depth
+
+NEGATIVE PROMPTS (AVOID):
+- NO cartoon, anime, vector art, or minimalist styles
+- NO modern clothing, anachronistic elements, or smartphones
+- NO blur, distortion, or low quality
+- NO text, watermarks, or logos
+- NO abstract or surrealist elements`;
+  }
+
+  // Fallback to default classical oil painting style if no art style provided
+  return `
 
 STYLE REQUIREMENTS (CRITICAL):
 - Masterpiece oil painting in classical historical art style
@@ -512,9 +536,104 @@ NEGATIVE PROMPTS (AVOID):
 - NO blur, distortion, or low quality
 - NO text, watermarks, or logos
 - NO abstract or surrealist elements`;
+};
+
+// Legacy export for backward compatibility (uses default style)
+export const OIL_PAINTING_STYLE_SUFFIX = generateStyleSuffix();
 
 export const NEGATIVE_PROMPT_HISTORICAL =
   "cartoon, anime, manga, sketch, vector art, minimalist, flat design, modern clothing, contemporary setting, smartphones, blur, distorted faces, low quality, text, watermark, logo, abstract, surrealist, anachronistic, digital art style, 3D render, gore, blood, open wounds, graphic violence, injuries, disfigurement, illness, disease symptoms, suffering, graphic medical procedures, dismemberment, mutilation, decapitation, severed limbs, visible internal organs, graphic bodily harm, torture scenes, close-up wounds, bleeding, graphic death scenes";
+
+// ============================================================================
+// AI-GENERATED ART STYLE DETERMINATION
+// ============================================================================
+
+export const GENERATE_ART_STYLE_PROMPT = (
+  era: HistoricalEra,
+  contentType: ContentType,
+  title: string
+) => `### ROLE
+
+You are an **Art History and Visual Style Specialist**. Your expertise spans painting movements, historical art styles, and period-appropriate visual aesthetics from ancient times through the 19th century.
+
+### OBJECTIVE
+
+Generate a detailed, era-appropriate painting style description that will be used to create visual scenes for a historical video. The style should authentically reflect the artistic traditions and aesthetic sensibilities of the historical period being depicted.
+
+### INPUTS
+
+- **TITLE:** ${title}
+- **ERA:** ${era}
+- **CONTENT TYPE:** ${contentType}
+
+### TASK
+
+Analyze the historical era and generate a comprehensive painting style description that includes:
+
+1. **Primary Art Movement/Period**: Identify the most appropriate historical painting style (e.g., Neoclassical, Romantic, Renaissance, Baroque, Gothic, etc.)
+
+2. **Master Artist References**: Name 1-3 specific historical painters whose style best matches this era and content type. Choose artists known for depicting similar subjects during or shortly after this period.
+
+3. **Technical Characteristics**: Describe the painting technique, including:
+   - Medium specifics (oil painting, fresco, tempera, etc.)
+   - Brushwork and texture qualities
+   - Color palette characteristics
+   - Lighting technique (chiaroscuro, tenebrism, etc.)
+
+4. **Compositional Style**: Describe typical composition approaches for this period (dramatic, balanced, heroic, intimate, etc.)
+
+### ERA-SPECIFIC GUIDELINES
+
+**Roman Republic/Empire:**
+- Favor Neoclassical or Academic painting styles (18th-19th century artists depicting classical antiquity)
+- Reference artists like Jacques-Louis David, Jean-Léon Gérôme, Lawrence Alma-Tadema
+- Emphasize marble, columns, togas, classical architecture
+- Heroic, idealized compositions with clear focal points
+
+**Medieval:**
+- Consider Gothic manuscript illumination style, early Renaissance, or Romantic interpretations of medieval subjects
+- Reference artists like the Limbourg Brothers (for illuminated style), Eugène Delacroix (for Romantic), or early Italian masters
+- Rich jewel tones, gold leaf effects, stylized or romantic medievalism
+- Architectural focus on castles, cathedrals, heraldry
+
+**Napoleonic:**
+- Strongly favor Romantic or Neoclassical military painting
+- Reference artists like Jacques-Louis David, Antoine-Jean Gros, Théodore Géricault, Francisco Goya
+- Dramatic lighting, heroic scale, dynamic battle compositions
+- Emphasis on military uniforms, horses, cannon smoke, flags
+
+**Prussian:**
+- Academic realism or Romantic military painting (19th century)
+- Reference artists like Adolph Menzel, Carl Röchling, or similar German military painters
+- Precise, detailed rendering of uniforms and equipment
+- Orderly military formations, Prussian blue color emphasis
+
+**Other Eras:**
+- Analyze the specific time period and choose the most historically appropriate painting tradition
+- Consider what artistic movements existed during or shortly after this period
+- Match the visual style to the cultural aesthetics of the era
+
+### OUTPUT FORMAT
+
+Provide a single, comprehensive paragraph (150-250 words) that will be injected into image generation prompts. The description should be specific, vivid, and technically detailed.
+
+**Example outputs:**
+
+For Roman Empire battle:
+"Masterpiece Neoclassical oil painting in the style of Jacques-Louis David and Jean-Léon Gérôme. Academic realism with heroic composition and dramatic chiaroscuro lighting. Rich, warm color palette dominated by crimson, gold, and bronze tones against stormy skies. Precise anatomical rendering with idealized musculature and classical proportions. Visible oil paint brushwork with impasto technique for armor and fabric textures. Cinematic composition with strong diagonal lines and pyramidal arrangement of figures. Historically accurate Roman military equipment, architecture, and costume details. Museum-quality 8k resolution with atmospheric perspective and depth."
+
+For Medieval siege:
+"Masterpiece Gothic-Romantic oil painting in the style of Eugène Delacroix and the Limbourg Brothers' illuminated manuscripts. Rich jewel-tone palette with deep blues, crimsons, and gold leaf accents. Dramatic chiaroscuro lighting with shafts of divine light breaking through storm clouds. Romantic medievalism with detailed castle architecture, heraldic banners, and period-accurate armor. Visible brushwork with textural details in stonework and fabric. Dynamic, asymmetrical composition with strong vertical elements. Atmospheric perspective creating depth and scale. 8k museum quality with historically accurate medieval costume and architectural details."
+
+### IMPORTANT CONSTRAINTS
+
+- **PAINTING STYLES ONLY**: Focus exclusively on traditional painting techniques (oil, fresco, tempera, illumination)
+- **NO modern/digital styles**: Avoid any reference to digital art, 3D rendering, photography, or contemporary art movements
+- **Historical authenticity**: The style should feel period-appropriate and historically grounded
+- **Specific artist names**: Always include 1-3 named historical artists as style references
+- **Technical detail**: Include specific painting techniques, color palettes, and compositional approaches
+
+Generate the art style description now:`;
 
 // ============================================================================
 // HISTORICAL MAP GENERATION - CARTOGRAPHY STYLE INJECTION

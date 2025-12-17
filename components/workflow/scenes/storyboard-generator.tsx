@@ -20,6 +20,7 @@ export function StoryboardGenerator({ onComplete }: StoryboardGeneratorProps) {
     updateStoryboardScene,
     setSceneGenerationProgress,
     sceneGenerationProgress,
+    historicalTopic,
   } = useSessionStore();
 
   const [generatingScenes, setGeneratingScenes] = useState(false);
@@ -39,6 +40,7 @@ export function StoryboardGenerator({ onComplete }: StoryboardGeneratorProps) {
         },
         body: JSON.stringify({
           scene,
+          artStyle: historicalTopic?.artStyle,
         }),
       });
 
@@ -134,7 +136,7 @@ export function StoryboardGenerator({ onComplete }: StoryboardGeneratorProps) {
         <div className="space-y-2">
           <h3 className="text-xl font-semibold font-serif">Generating Historical Storyboard</h3>
           <p className="text-muted-foreground">
-            Creating cinematic oil painting style visuals for each scene
+            Creating cinematic {historicalTopic?.artStyle ? 'era-appropriate' : 'oil painting'} style visuals for each scene
           </p>
         </div>
 
@@ -200,7 +202,7 @@ export function StoryboardGenerator({ onComplete }: StoryboardGeneratorProps) {
         </div>
 
         <div className="text-sm text-muted-foreground space-y-1">
-          <p>Images are being generated with oil painting style.</p>
+          <p>Images are being generated with {historicalTopic?.artStyle ? 'AI-generated era-appropriate painting' : 'oil painting'} style.</p>
           <p>Each scene will feature historically accurate, dramatic visuals.</p>
           <p className="text-xs">Using nano-banana model (~7-10 seconds per scene)</p>
         </div>

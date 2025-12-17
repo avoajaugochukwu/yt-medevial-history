@@ -29,6 +29,7 @@ export interface HistoricalTopic {
   contentType: ContentType;
   tone: NarrativeTone;
   created_at: Date;
+  artStyle?: string; // AI-generated era-appropriate painting style
 }
 
 // Historical Research Output (Prompt 1)
