@@ -105,11 +105,20 @@ export interface Script {
 }
 
 // Scene Breakdown (Prompt 4)
+export interface MapData {
+  location: string;
+  time_period: string;
+  geographic_focus: string;
+  territories: string[];
+}
+
 export interface Scene {
   scene_number: number;
+  scene_type?: 'visual' | 'map';
   script_snippet: string;
   visual_prompt: string;
   historical_context?: string;
+  map_data?: MapData;
 }
 
 export interface StoryboardScene extends Scene {

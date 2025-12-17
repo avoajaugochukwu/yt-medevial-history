@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fal } from '@fal-ai/client';
-import { OIL_PAINTING_STYLE_SUFFIX, NEGATIVE_PROMPT_HISTORICAL } from '@/lib/prompts/all-prompts';
+import {
+  OIL_PAINTING_STYLE_SUFFIX,
+  HISTORICAL_MAP_STYLE_SUFFIX,
+  NEGATIVE_PROMPT_HISTORICAL,
+  NEGATIVE_PROMPT_MAPS,
+} from '@/lib/prompts/all-prompts';
 
 interface FalImageResult {
   data?: {
@@ -28,13 +33,17 @@ export async function POST(request: NextRequest) {
       credentials: apiKey,
     });
 
-    // Build enhanced prompt with oil painting style
+    // Build enhanced prompt with appropriate style based on scene type
     const basePrompt = scene.visual_prompt || 'Historical scene';
+    const isMapScene = scene.scene_type === 'map';
 
-    // Inject oil painting style suffix to ensure painterly, historically accurate visuals
-    const styledPrompt = `${basePrompt}${OIL_PAINTING_STYLE_SUFFIX}`;
+    // Inject appropriate style suffix: historical map for maps, oil painting for visual scenes
+    const styleSuffix = isMapScene ? HISTORICAL_MAP_STYLE_SUFFIX : OIL_PAINTING_STYLE_SUFFIX;
+    const negativePrompt = isMapScene ? NEGATIVE_PROMPT_MAPS : NEGATIVE_PROMPT_HISTORICAL;
+    const styledPrompt = `${basePrompt}${styleSuffix}`;
 
-    console.log(`[Scene Image] Generating image for scene ${scene.scene_number}`);
+    const sceneTypeLabel = isMapScene ? 'MAP' : 'VISUAL';
+    console.log(`[Scene Image] Generating ${sceneTypeLabel} image for scene ${scene.scene_number}`);
     console.log(`[Scene Image] Prompt length: ${styledPrompt.length} characters`);
 
     // Use nano-banana for fast generation (7-10 seconds) with enhanced prompting
@@ -42,7 +51,7 @@ export async function POST(request: NextRequest) {
     const apiRequest = {
       input: {
         prompt: styledPrompt,
-        negative_prompt: NEGATIVE_PROMPT_HISTORICAL,
+        negative_prompt: negativePrompt,
         num_images: 1,
         aspect_ratio: '16:9',
         seed: Math.floor(Math.random() * 1000000), // Random seed for variety
@@ -66,7 +75,7 @@ export async function POST(request: NextRequest) {
       prompt_used: styledPrompt,
       aspect_ratio: '16:9',
       model: 'fal-ai/nano-banana',
-      style: 'oil-painting-historical',
+      style: isMapScene ? 'historical-map' : 'oil-painting-historical',
     });
   } catch (error) {
     console.error('[Scene Image] Generation error:', error);

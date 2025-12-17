@@ -373,13 +373,28 @@ He gives the order. The Thirteenth Legion steps into the water..."
 
 export const SCENE_BREAKDOWN_PROMPT = (script: string, targetSceneCount: number) => `### ROLE
 
-You are a **Visual Director** for historical documentary content, specialized in translating narration into stunning visual scene descriptions.
+You are a **Visual Director** for historical documentary content, specialized in translating narration into stunning visual scene descriptions and historical cartography.
 
 ### OBJECTIVE
 
-Analyze the provided script and break it into approximately ${targetSceneCount} distinct visual scenes. Each scene should have a clear visual concept that can be rendered as a dramatic, painterly image in the style of classical historical art.
+Analyze the provided script and break it into approximately ${targetSceneCount} distinct visual scenes. Each scene should be either:
+1. **Visual Scene (scene_type: "visual"):** A dramatic, painterly image in classical historical art style
+2. **Map Scene (scene_type: "map"):** A historical cartographic map showing geographic context
 
 **TARGET SCENE COUNT:** ${targetSceneCount} scenes (based on script duration and ~7-8 seconds per scene)
+
+### MAP SCENE DETECTION
+
+**When to Generate Map Scenes:**
+- When the script introduces a NEW significant location for the first time (e.g., "The Rubicon River, northern Italy", "Constantinople, capital of the Byzantine Empire")
+- When geographic context is essential to understanding the narrative (battle locations, territorial expansion, trade routes)
+- At the beginning of the video to establish geographic setting
+- When political boundaries or territories are being discussed
+
+**Map Scene Requirements:**
+- Generate the map scene BEFORE the related visual scenes that depict events at that location
+- Include "map_data" object with structured geographic information
+- Focus visual_prompt on political boundaries and territories as they existed in the time period
 
 ### INPUT SCRIPT
 
@@ -421,12 +436,27 @@ Return a JSON array of scenes (ONLY valid JSON, no markdown code blocks):
 [
   {
     "scene_number": 1,
+    "scene_type": "map",
+    "script_snippet": "January 10th, 49 BC. The Rubicon River, northern Italy...",
+    "visual_prompt": "Historical cartographic map of Roman Italy in 49 BC. Shows the Italian peninsula with Cisalpine Gaul (Gallia Cisalpina) in the north beyond the Rubicon River, the Roman territories of Italia proper, and the city of Rome in Latium. Political boundaries clearly marked in distinct colors showing Roman administrative regions. The Rubicon River prominently labeled as the sacred boundary. Major cities indicated: Rome, Ravenna, Ariminum. Apennine mountain range shown in relief style, Tyrrhenian Sea and Adriatic Sea labeled with decorative calligraphy. Aged parchment texture, ornate compass rose, baroque cartouche with title 'Italia 49 BC'. Muted earth tones: sepia, sage green, dusty blue. 18th-century cartographic art style, museum quality.",
+    "historical_context": "The Rubicon River marked the legal boundary between Cisalpine Gaul (Caesar's province) and Italia. Crossing it with an army was an act of treason.",
+    "map_data": {
+      "location": "Roman Italy",
+      "time_period": "49 BC",
+      "geographic_focus": "Rubicon River boundary between Cisalpine Gaul and Italia",
+      "territories": ["Cisalpine Gaul", "Italia", "Roman Republic territories", "Latium"]
+    }
+  },
+  {
+    "scene_number": 2,
+    "scene_type": "visual",
     "script_snippet": "January 10th, 49 BC. The Rubicon River, northern Italy...",
     "visual_prompt": "Cinematic oil painting in the style of Jacques-Louis David. Julius Caesar on horseback at the edge of the Rubicon River at dawn, Roman general in red paludamentum cloak and polished bronze muscle cuirass, one hand raised dramatically. Behind him, the Thirteenth Legion in formation - Roman legionaries in lorica segmentata armor with rectangular scutum shields, red tunics, iron helmets with red plumes. Misty winter morning, golden sunlight breaking through clouds, the shallow river reflecting the sky. Aquila eagle standard prominent. Dramatic chiaroscuro lighting, heroic composition, 8k detail, historically accurate, cinematic atmosphere. Renaissance master technique, rich oil painting textures.",
     "historical_context": "Caesar's decision to cross the Rubicon with his legion was illegal and precipitated the Roman Civil War"
   },
   {
-    "scene_number": 2,
+    "scene_number": 3,
+    "scene_type": "visual",
     "script_snippet": "The clash of bronze echoes across the valley...",
     "visual_prompt": "Epic battle scene in Romantic era oil painting style. Aerial view of the Battle of Cannae, 216 BC. Carthaginian forces in crescent formation enveloping Roman legions in the center. Mass of 100,000+ soldiers, dust clouds rising, Carthaginian war elephants visible on flanks. Bronze weapons catching sunlight, red and white of Roman standards contrasting with Carthaginian purple. August heat, southern Italian landscape, dramatic sky. Painted in the style of Peter Paul Rubens' battle scenes - dynamic movement, muscular figures, theatrical lighting, rich colors, grand scale, 8k resolution.",
     "historical_context": "Hannibal's double envelopment at Cannae is considered one of history's most perfect tactical victories"
@@ -485,3 +515,35 @@ NEGATIVE PROMPTS (AVOID):
 
 export const NEGATIVE_PROMPT_HISTORICAL =
   "cartoon, anime, manga, sketch, vector art, minimalist, flat design, modern clothing, contemporary setting, smartphones, blur, distorted faces, low quality, text, watermark, logo, abstract, surrealist, anachronistic, digital art style, 3D render, gore, blood, open wounds, graphic violence, injuries, disfigurement, illness, disease symptoms, suffering, graphic medical procedures, dismemberment, mutilation, decapitation, severed limbs, visible internal organs, graphic bodily harm, torture scenes, close-up wounds, bleeding, graphic death scenes";
+
+// ============================================================================
+// HISTORICAL MAP GENERATION - CARTOGRAPHY STYLE INJECTION
+// ============================================================================
+
+export const HISTORICAL_MAP_STYLE_SUFFIX = `
+
+STYLE REQUIREMENTS (HISTORICAL MAP - CRITICAL):
+- Hand-drawn historical map in the style of 18th-century cartography
+- Aged parchment or vellum texture background with weathered edges
+- Calligraphic labels and text in period-appropriate Latin or vernacular fonts
+- Decorative compass rose in baroque or rococo style
+- Ornate cartouche (decorative title box) with flourishes
+- Political boundaries and territories clearly delineated with distinct colors
+- Geographic features: rivers in blue, mountains in relief style, forests indicated
+- Major cities marked with symbolic icons (castles, churches)
+- Muted earth tone color palette: sepia, ochre, burnt umber, sage green, dusty blue
+- Artistic embellishments: sea monsters in oceans, wind heads in corners
+- 8k resolution, museum quality cartographic art
+- Historically accurate for the specified time period
+
+NEGATIVE PROMPTS (MAPS - AVOID):
+- NO modern satellite imagery, digital maps, GPS style, or Google Maps aesthetic
+- NO contemporary political boundaries or modern country names
+- NO bright neon colors, modern design elements, or sans-serif fonts
+- NO photographs, realistic terrain rendering, or 3D map style
+- NO modern symbols (highways, airports, power lines)
+- NO clean minimalist design - maps should look aged and artistic
+- NO text rendering errors, gibberish, or illegible labels`;
+
+export const NEGATIVE_PROMPT_MAPS =
+  "satellite imagery, modern map, GPS, Google Maps, digital cartography, contemporary borders, modern countries, neon colors, sans-serif fonts, photographs, 3D terrain, realistic rendering, highways, airports, modern infrastructure, minimalist, clean design, vector graphics, web map, topographic precision, modern symbols, bright colors, sharp edges, sterile, computational";

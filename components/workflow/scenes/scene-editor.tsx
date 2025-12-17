@@ -14,13 +14,14 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/common/loading-spinner';
-import { 
-  RefreshCw, 
-  ChevronLeft, 
+import {
+  RefreshCw,
+  ChevronLeft,
   ChevronRight,
   Save,
   X,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Map
 } from 'lucide-react';
 
 interface SceneEditorProps {
@@ -116,7 +117,15 @@ export function SceneEditor({ scene, isOpen, onClose, onNavigate }: SceneEditorP
       <DialogContent className="max-w-4xl">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
-            <span>Scene {scene.scene_number}</span>
+            <div className="flex items-center gap-2">
+              <span>Scene {scene.scene_number}</span>
+              {scene.scene_type === 'map' && (
+                <Badge variant="secondary" className="flex items-center gap-1">
+                  <Map className="h-3 w-3" />
+                  Map
+                </Badge>
+              )}
+            </div>
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
@@ -175,6 +184,32 @@ export function SceneEditor({ scene, isOpen, onClose, onNavigate }: SceneEditorP
               <p className="text-sm">{scene.script_snippet}</p>
             </div>
           </div>
+
+          {/* Map Data (if map scene) */}
+          {scene.scene_type === 'map' && scene.map_data && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Map Information:</label>
+              <div className="p-3 bg-blue-50 rounded-md space-y-2">
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <span className="font-medium">Location:</span> {scene.map_data.location}
+                  </div>
+                  <div>
+                    <span className="font-medium">Time Period:</span> {scene.map_data.time_period}
+                  </div>
+                </div>
+                <div className="text-sm">
+                  <span className="font-medium">Focus:</span> {scene.map_data.geographic_focus}
+                </div>
+                {scene.map_data.territories && scene.map_data.territories.length > 0 && (
+                  <div className="text-sm">
+                    <span className="font-medium">Territories:</span>{' '}
+                    {scene.map_data.territories.join(', ')}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Visual Prompt */}
           <div className="space-y-2">

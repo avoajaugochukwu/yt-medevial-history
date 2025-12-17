@@ -7,13 +7,14 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { SceneEditor } from './scene-editor';
-import { 
+import {
   Grid3x3,
   RefreshCw,
   CheckCircle,
   AlertCircle,
   Image as ImageIcon,
-  Edit
+  Edit,
+  Map
 } from 'lucide-react';
 
 export function StoryboardGrid() {
@@ -129,7 +130,15 @@ export function StoryboardGrid() {
             <CardContent className="p-4 space-y-3">
               {/* Scene Number and Status */}
               <div className="flex items-center justify-between">
-                <Badge variant="outline">Scene {scene.scene_number}</Badge>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline">Scene {scene.scene_number}</Badge>
+                  {scene.scene_type === 'map' && (
+                    <Badge variant="secondary" className="flex items-center gap-1">
+                      <Map className="h-3 w-3" />
+                      Map
+                    </Badge>
+                  )}
+                </div>
                 {scene.generation_status === 'completed' && (
                   <CheckCircle className="h-4 w-4 text-green-500" />
                 )}
