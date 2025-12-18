@@ -429,6 +429,13 @@ Each scene description must be detailed enough for an AI image generator to crea
 - NO torture scenes, executions with visible gore, or graphic death depictions
 - Keep battle imagery heroic and distant rather than graphic and close-up
 
+**PROHIBITED SCENE TYPES (CRITICAL - These reveal AI generation):**
+- NO balance sheets, spreadsheets, charts, graphs, or data visualizations
+- NO comparison maps showing "before vs after" territorial changes - these have high error rates
+- NO infographics, statistics overlays, or numerical data displays
+- NO text-heavy scenes with labels, timelines, or educational diagrams
+- For MAP SCENES: Do NOT add people, figures, or characters unless depicting a specific war room or command tent scene. Maps should show ONLY cartographic elements (territories, borders, terrain, city markers, labels)
+
 ### OUTPUT FORMAT
 
 Return a JSON array of scenes (ONLY valid JSON, no markdown code blocks):
@@ -542,7 +549,7 @@ NEGATIVE PROMPTS (AVOID):
 export const OIL_PAINTING_STYLE_SUFFIX = generateStyleSuffix();
 
 export const NEGATIVE_PROMPT_HISTORICAL =
-  "cartoon, anime, manga, sketch, vector art, minimalist, flat design, modern clothing, contemporary setting, smartphones, blur, distorted faces, low quality, text, watermark, logo, abstract, surrealist, anachronistic, digital art style, 3D render, gore, blood, open wounds, graphic violence, injuries, disfigurement, illness, disease symptoms, suffering, graphic medical procedures, dismemberment, mutilation, decapitation, severed limbs, visible internal organs, graphic bodily harm, torture scenes, close-up wounds, bleeding, graphic death scenes";
+  "cartoon, anime, manga, sketch, vector art, minimalist, flat design, modern clothing, contemporary setting, smartphones, blur, distorted faces, low quality, text, watermark, logo, abstract, surrealist, anachronistic, digital art style, 3D render, gore, blood, open wounds, graphic violence, injuries, disfigurement, illness, disease symptoms, suffering, graphic medical procedures, dismemberment, mutilation, decapitation, severed limbs, visible internal organs, graphic bodily harm, torture scenes, close-up wounds, bleeding, graphic death scenes, balance sheet, infographic, chart, graph, data visualization, comparison diagram, statistics, spreadsheet, timeline diagram";
 
 // ============================================================================
 // AI-GENERATED ART STYLE DETERMINATION
@@ -665,4 +672,4 @@ NEGATIVE PROMPTS (MAPS - AVOID):
 - NO text rendering errors, gibberish, or illegible labels`;
 
 export const NEGATIVE_PROMPT_MAPS =
-  "satellite imagery, modern map, GPS, Google Maps, digital cartography, contemporary borders, modern countries, neon colors, sans-serif fonts, photographs, 3D terrain, realistic rendering, highways, airports, modern infrastructure, minimalist, clean design, vector graphics, web map, topographic precision, modern symbols, bright colors, sharp edges, sterile, computational";
+  "satellite imagery, modern map, GPS, Google Maps, digital cartography, contemporary borders, modern countries, neon colors, sans-serif fonts, photographs, 3D terrain, realistic rendering, highways, airports, modern infrastructure, minimalist, clean design, vector graphics, web map, topographic precision, modern symbols, bright colors, sharp edges, sterile, computational, balance sheet, comparison map, before after, side by side, infographic, chart, graph, data visualization, statistics, numbers overlay, text overlay, figures on map, people on map, human figures, soldiers on map";
