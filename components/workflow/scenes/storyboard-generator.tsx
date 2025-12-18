@@ -8,6 +8,9 @@ import { Badge } from '@/components/ui/badge';
 import { StoryboardScene } from '@/lib/types';
 import { Film, CheckCircle, AlertCircle } from 'lucide-react';
 
+// Batch size for concurrent image generation to avoid overwhelming the API
+const GENERATION_BATCH_SIZE = 10;
+
 interface StoryboardGeneratorProps {
   onComplete?: () => void;
 }
@@ -26,6 +29,15 @@ export function StoryboardGenerator({ onComplete }: StoryboardGeneratorProps) {
   const [generatingScenes, setGeneratingScenes] = useState(false);
   const [currentGeneratingScene, setCurrentGeneratingScene] = useState(0);
   const hasGeneratedScenesRef = useRef(false);
+
+  // Utility function to chunk array into batches
+  const chunkArray = <T,>(array: T[], chunkSize: number): T[][] => {
+    const chunks: T[][] = [];
+    for (let i = 0; i < array.length; i += chunkSize) {
+      chunks.push(array.slice(i, i + chunkSize));
+    }
+    return chunks;
+  };
 
   const generateSceneImage = async (scene: StoryboardScene) => {
     try {
@@ -85,17 +97,32 @@ export function StoryboardGenerator({ onComplete }: StoryboardGeneratorProps) {
       onComplete();
     }
 
-    // Generate all images in parallel for maximum speed
-    const generationPromises = scenes.map((scene) =>
-      generateSceneImage({
-        ...scene,
-        generation_status: 'pending',
-      } as StoryboardScene)
-    );
+    // Create storyboard scene objects for batch processing
+    const scenesToGenerate: StoryboardScene[] = scenes.map((scene) => ({
+      ...scene,
+      generation_status: 'pending',
+    }));
 
-    // Wait for all generations to complete
-    await Promise.all(generationPromises);
+    // Split scenes into batches to avoid overwhelming the API
+    const batches = chunkArray(scenesToGenerate, GENERATION_BATCH_SIZE);
 
+    console.log(`[Storyboard] Starting batched generation: ${scenes.length} scenes in ${batches.length} batches of ${GENERATION_BATCH_SIZE}`);
+
+    // Process batches sequentially, but scenes within each batch run in parallel
+    for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+      const batch = batches[batchIndex];
+
+      console.log(`[Storyboard] Processing batch ${batchIndex + 1}/${batches.length} (scenes ${batch[0].scene_number}-${batch[batch.length - 1].scene_number})`);
+
+      // Generate all scenes in this batch concurrently
+      const batchPromises = batch.map((scene) => generateSceneImage(scene));
+
+      // Wait for entire batch to complete before starting next batch
+      // Promise.allSettled ensures we continue even if some scenes fail
+      await Promise.allSettled(batchPromises);
+    }
+
+    console.log(`[Storyboard] Batched generation complete`);
     setGeneratingScenes(false);
   };
 
