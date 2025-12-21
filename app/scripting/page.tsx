@@ -5,11 +5,9 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Sparkles, Copy, Check, Loader2 } from 'lucide-react';
+import { Sparkles, Copy, Check, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
 import toast from 'react-hot-toast';
-import type { HistoricalEra, ContentType, NarrativeTone, HistoricalResearch, NarrativeOutline, Script } from '@/lib/types';
+import type { TacticalResearch, RecursiveScript, TacticalOutline } from '@/lib/types';
 import { useSessionStore } from '@/lib/store';
 import { useRouter } from 'next/navigation';
 
@@ -22,53 +20,55 @@ interface Step {
   status: StepStatus;
 }
 
-export default function HistoricalScriptingPage() {
+export default function WarRoomScriptingPage() {
   const router = useRouter();
-  const { setHistoricalTopic, setResearch, setOutline, setScript } = useSessionStore();
+  const { setHistoricalTopic, setTacticalResearch, setRecursiveScript, setRecursiveProgress } = useSessionStore();
 
   // Form inputs
   const [title, setTitle] = useState('');
-  const [era, setEra] = useState<HistoricalEra>('Roman Empire');
-  const [contentType, setContentType] = useState<ContentType>('Battle');
-  const [tone, setTone] = useState<NarrativeTone>('Epic');
-  const [targetDuration, setTargetDuration] = useState<number>(10);
+  const [targetDuration, setTargetDuration] = useState<number>(35); // Default to War Room standard
 
   // Generation state
   const [status, setStatus] = useState<GenerationStatus>('idle');
   const [steps, setSteps] = useState<Step[]>([
-    { number: 1, label: 'Researching Historical Facts', status: 'pending' },
-    { number: 2, label: 'Creating Narrative Structure', status: 'pending' },
-    { number: 3, label: 'Generating Historical Script', status: 'pending' },
+    { number: 1, label: 'Extracting Tactical Telemetry', status: 'pending' },
+    { number: 2, label: 'Generating Hook', status: 'pending' },
+    { number: 3, label: 'Building Master Outline', status: 'pending' },
+    { number: 4, label: 'Generating Batch 1/7 (Map Meta + Faction A)', status: 'pending' },
+    { number: 5, label: 'Generating Batch 2/7 (Faction B + Opening)', status: 'pending' },
+    { number: 6, label: 'Generating Batch 3/7 (Critical Error)', status: 'pending' },
+    { number: 7, label: 'Generating Batch 4/7 (Unit Collision)', status: 'pending' },
+    { number: 8, label: 'Generating Batch 5/7 (Flanking Exploit)', status: 'pending' },
+    { number: 9, label: 'Generating Batch 6/7 (The Rout)', status: 'pending' },
+    { number: 10, label: 'Generating Batch 7/7 (Aftermath + Patch Notes)', status: 'pending' },
+    { number: 11, label: 'Validating Style Compliance', status: 'pending' },
   ]);
 
   // Generated data
-  const [researchData, setResearchData] = useState<HistoricalResearch | null>(null);
-  const [outlineData, setOutlineData] = useState<NarrativeOutline | null>(null);
-  const [scriptData, setScriptData] = useState<Script | null>(null);
+  const [researchData, setResearchData] = useState<TacticalResearch | null>(null);
+  const [scriptData, setScriptDataLocal] = useState<RecursiveScript | null>(null);
+  const [artStyle, setArtStyle] = useState<string | undefined>(undefined);
 
   // UI state
   const [copied, setCopied] = useState(false);
+  const [showOutline, setShowOutline] = useState(false);
+  const [currentBatch, setCurrentBatch] = useState(0);
 
-  const updateStepStatus = (stepNumber: number, status: StepStatus) => {
+  const updateStepStatus = (stepNumber: number, newStatus: StepStatus) => {
     setSteps((prev) =>
-      prev.map((step) => (step.number === stepNumber ? { ...step, status } : step))
+      prev.map((step) => (step.number === stepNumber ? { ...step, status: newStatus } : step))
     );
   };
 
   const handleGenerate = async () => {
     // Validation
     if (!title.trim()) {
-      toast.error('Please provide a historical topic title');
+      toast.error('Please provide a battle/engagement title');
       return;
     }
 
-    if (!era || !contentType || !tone) {
-      toast.error('Please select era, content type, and tone');
-      return;
-    }
-
-    if (!targetDuration || targetDuration <= 0) {
-      toast.error('Please provide a valid target duration');
+    if (!targetDuration || targetDuration <= 0 || targetDuration > 40) {
+      toast.error('Target duration must be between 1 and 40 minutes');
       return;
     }
 
@@ -79,106 +79,102 @@ export default function HistoricalScriptingPage() {
 
     // Reset generated data
     setResearchData(null);
-    setOutlineData(null);
-    setScriptData(null);
+    setScriptDataLocal(null);
+    setCurrentBatch(0);
 
     try {
       // ============================================================================
-      // STEP 1: Historical Research
+      // STEP 1: Tactical Research (Perplexity)
       // ============================================================================
       updateStepStatus(1, 'in_progress');
 
       const step1Response = await fetch('/api/research/historical', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, era, contentType, targetDuration }),
+        body: JSON.stringify({ title, targetDuration }),
       });
 
       if (!step1Response.ok) {
         const errorData = await step1Response.json();
-        throw new Error(errorData.error || 'Historical research failed');
+        throw new Error(errorData.error || 'Tactical research failed');
       }
 
       const step1Data = await step1Response.json();
-      const research: HistoricalResearch = step1Data.research;
-      const artStyle: string | undefined = step1Data.artStyle;
+      const research: TacticalResearch = step1Data.research;
+      const generatedArtStyle: string | undefined = step1Data.artStyle;
 
       setResearchData(research);
+      setArtStyle(generatedArtStyle);
+      setTacticalResearch(research);
       updateStepStatus(1, 'completed');
 
-      console.log('[Step 1] Historical research completed:', research);
-      if (artStyle) {
-        console.log('[Step 1] Art style generated:', artStyle.substring(0, 100) + '...');
-      }
+      console.log('[Step 1] Tactical research completed:', research);
 
       // ============================================================================
-      // STEP 2: Narrative Outline
+      // STEPS 2-11: Recursive Script Generation
       // ============================================================================
+      // Mark all batch steps as starting
       updateStepStatus(2, 'in_progress');
 
-      const step2Response = await fetch('/api/generate/narrative-outline', {
+      // Update progress for recursive generation
+      setRecursiveProgress({
+        phase: 'hook',
+        current_batch: 0,
+        total_batches: 7,
+        current_word_count: 0,
+        target_word_count: targetDuration * 150,
+      });
+
+      const scriptResponse = await fetch('/api/generate/final-script', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title,
           research: JSON.stringify(research),
-          tone,
           targetDuration,
         }),
       });
 
-      if (!step2Response.ok) {
-        const errorData = await step2Response.json();
-        throw new Error(errorData.error || 'Narrative outline generation failed');
-      }
-
-      const step2Data = await step2Response.json();
-      const outline: NarrativeOutline = step2Data.outline;
-
-      setOutlineData(outline);
-      updateStepStatus(2, 'completed');
-
-      console.log('[Step 2] Narrative outline completed:', outline);
-
-      // ============================================================================
-      // STEP 3: Final Script
-      // ============================================================================
-      updateStepStatus(3, 'in_progress');
-
-      const step3Response = await fetch('/api/generate/final-script', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title,
-          research: JSON.stringify(research),
-          outline: JSON.stringify(outline),
-          tone,
-          era,
-          targetDuration,
-        }),
-      });
-
-      if (!step3Response.ok) {
-        const errorData = await step3Response.json();
+      if (!scriptResponse.ok) {
+        const errorData = await scriptResponse.json();
         throw new Error(errorData.error || 'Script generation failed');
       }
 
-      const step3Data = await step3Response.json();
-      const script: Script = step3Data.script;
+      const scriptResult = await scriptResponse.json();
+      const script: RecursiveScript = scriptResult.script;
 
-      setScriptData(script);
-      updateStepStatus(3, 'completed');
+      // Mark all steps as completed
+      for (let i = 2; i <= 11; i++) {
+        updateStepStatus(i, 'completed');
+      }
 
-      console.log('[Step 3] Final script completed:', script);
+      setScriptDataLocal(script);
+      setRecursiveScript(script);
+      setRecursiveProgress({
+        phase: 'complete',
+        current_batch: 7,
+        total_batches: 7,
+        current_word_count: script.total_word_count,
+        target_word_count: targetDuration * 150,
+      });
 
-      // Save to store
-      setHistoricalTopic({ title, era, contentType, tone, created_at: new Date(), artStyle });
-      setResearch(research);
-      setOutline(outline);
-      setScript(script);
+      // Save to store (era is inferred from research)
+      setHistoricalTopic({
+        title,
+        era: research.era,
+        tone: 'Documentary', // War Room uses tactical documentary tone
+        created_at: new Date(),
+        artStyle: generatedArtStyle
+      });
 
       setStatus('completed');
-      toast.success('Historical narrative generated successfully!');
+
+      // Show style violations as warnings if any
+      if (scriptResult.metadata?.style_violations?.length > 0) {
+        toast.success(`Script generated with ${scriptResult.metadata.style_violations.length} style warning(s)`);
+      } else {
+        toast.success('War Room tactical documentary generated successfully!');
+      }
     } catch (error) {
       console.error('Generation error:', error);
 
@@ -195,8 +191,8 @@ export default function HistoricalScriptingPage() {
   };
 
   const handleCopy = async () => {
-    if (scriptData?.content) {
-      await navigator.clipboard.writeText(scriptData.content);
+    if (scriptData?.full_script) {
+      await navigator.clipboard.writeText(scriptData.full_script);
       setCopied(true);
       toast.success('Script copied to clipboard!');
       setTimeout(() => setCopied(false), 2000);
@@ -204,7 +200,7 @@ export default function HistoricalScriptingPage() {
   };
 
   const handleProceedToScenes = () => {
-    if (scriptData?.content) {
+    if (scriptData?.full_script) {
       router.push('/scenes');
     }
   };
@@ -218,7 +214,10 @@ export default function HistoricalScriptingPage() {
   };
 
   const estimatedDuration = scriptData?.target_duration ||
-    (scriptData?.word_count ? Math.round((scriptData.word_count / 150) * 10) / 10 : 0);
+    (scriptData?.total_word_count ? Math.round((scriptData.total_word_count / 150) * 10) / 10 : 0);
+
+  // Calculate completed batches for progress bar
+  const completedBatches = scriptData?.batches?.length || currentBatch;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
@@ -227,129 +226,56 @@ export default function HistoricalScriptingPage() {
         {status === 'idle' && (
           <Card className="shadow-lg border-border/50">
             <CardHeader className="space-y-2">
-              <CardTitle className="text-3xl font-serif">Historical Topic Configuration</CardTitle>
+              <CardTitle className="text-3xl font-serif">War Room Configuration</CardTitle>
               <CardDescription className="text-base">
-                Choose your historical era, content type, and narrative style to generate a
-                compelling historical narrative
+                Configure your tactical documentary. The system will extract battlefield telemetry,
+                analyze unit builds, and generate a 10-point tactical breakdown.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Title */}
               <div className="space-y-2">
                 <Label htmlFor="title" className="text-base font-medium">
-                  Title
+                  Battle / Engagement
                 </Label>
                 <Input
                   id="title"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g., The Crossing of the Rubicon"
+                  placeholder="e.g., Battle of Cannae, Siege of Constantinople"
                   className="text-base h-12"
                 />
               </div>
 
-              {/* Era, Content Type, and Target Duration */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="era" className="text-base font-medium">
-                    Historical Era
-                  </Label>
-                  <Select value={era} onValueChange={(value) => setEra(value as HistoricalEra)}>
-                    <SelectTrigger id="era" className="h-12">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Roman Republic">Roman Republic</SelectItem>
-                      <SelectItem value="Roman Empire">Roman Empire</SelectItem>
-                      <SelectItem value="Medieval">Medieval</SelectItem>
-                      <SelectItem value="Napoleonic">Napoleonic</SelectItem>
-                      <SelectItem value="Prussian">Prussian</SelectItem>
-                      <SelectItem value="Other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="contentType" className="text-base font-medium">
-                    Content Type
-                  </Label>
-                  <Select
-                    value={contentType}
-                    onValueChange={(value) => setContentType(value as ContentType)}
-                  >
-                    <SelectTrigger id="contentType" className="h-12">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Biography">Biography</SelectItem>
-                      <SelectItem value="Battle">Battle</SelectItem>
-                      <SelectItem value="Culture">Culture</SelectItem>
-                      <SelectItem value="Mythology">Mythology</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="targetDuration" className="text-base font-medium">
-                    Target Duration (min)
-                  </Label>
-                  <Input
-                    id="targetDuration"
-                    type="number"
-                    min="1"
-                    step="1"
-                    value={targetDuration}
-                    onChange={(e) => setTargetDuration(Number(e.target.value))}
-                    placeholder="e.g., 10"
-                    className="text-base h-12"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    ~{targetDuration * 150} words
-                  </p>
-                </div>
+              {/* Target Duration */}
+              <div className="space-y-2">
+                <Label htmlFor="targetDuration" className="text-base font-medium">
+                  Target Duration (min)
+                </Label>
+                <Input
+                  id="targetDuration"
+                  type="number"
+                  min="1"
+                  max="40"
+                  step="5"
+                  value={targetDuration}
+                  onChange={(e) => setTargetDuration(Math.min(40, Math.max(1, Number(e.target.value))))}
+                  placeholder="35"
+                  className="text-base h-12"
+                />
+                <p className="text-xs text-muted-foreground">
+                  ~{targetDuration * 150} words • Recommended: 35 min for War Room style
+                </p>
               </div>
 
-              {/* Narrative Tone */}
-              <div className="space-y-3">
-                <Label className="text-base font-medium">Narrative Tone</Label>
-                <RadioGroup value={tone} onValueChange={(value) => setTone(value as NarrativeTone)}>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="flex items-center space-x-2 border border-border rounded-lg p-3 cursor-pointer hover:bg-muted/50">
-                      <RadioGroupItem value="Epic" id="epic" />
-                      <Label htmlFor="epic" className="cursor-pointer flex-1">
-                        <div className="font-medium">Epic</div>
-                        <div className="text-xs text-muted-foreground">
-                          Heroic and grand scale
-                        </div>
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2 border border-border rounded-lg p-3 cursor-pointer hover:bg-muted/50">
-                      <RadioGroupItem value="Documentary" id="documentary" />
-                      <Label htmlFor="documentary" className="cursor-pointer flex-1">
-                        <div className="font-medium">Documentary</div>
-                        <div className="text-xs text-muted-foreground">
-                          Analytical and factual
-                        </div>
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2 border border-border rounded-lg p-3 cursor-pointer hover:bg-muted/50">
-                      <RadioGroupItem value="Tragic" id="tragic" />
-                      <Label htmlFor="tragic" className="cursor-pointer flex-1">
-                        <div className="font-medium">Tragic</div>
-                        <div className="text-xs text-muted-foreground">
-                          Melancholic and somber
-                        </div>
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2 border border-border rounded-lg p-3 cursor-pointer hover:bg-muted/50">
-                      <RadioGroupItem value="Educational" id="educational" />
-                      <Label htmlFor="educational" className="cursor-pointer flex-1">
-                        <div className="font-medium">Educational</div>
-                        <div className="text-xs text-muted-foreground">Clear and accessible</div>
-                      </Label>
-                    </div>
-                  </div>
-                </RadioGroup>
+              {/* War Room Style Info */}
+              <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                <h4 className="font-semibold text-amber-800 dark:text-amber-200 mb-2">War Room Style</h4>
+                <p className="text-sm text-amber-700 dark:text-amber-300">
+                  Tactical documentary with gaming terminology. Analyzes battles like post-game breakdowns —
+                  unit builds, terrain meta, kill ratios, and tactical exploits. No flowery language about
+                  "valor" or "heroism" — pure tactical analysis.
+                </p>
               </div>
 
               {/* Generate Button */}
@@ -359,7 +285,7 @@ export default function HistoricalScriptingPage() {
                 size="lg"
               >
                 <Sparkles className="mr-2 h-5 w-5" />
-                Generate Historical Narrative
+                Generate Tactical Documentary
               </Button>
             </CardContent>
           </Card>
@@ -371,20 +297,40 @@ export default function HistoricalScriptingPage() {
             <CardHeader>
               <CardTitle className="text-2xl font-serif">Generation Progress</CardTitle>
               <CardDescription>
-                Creating your historical narrative: {title}
+                War Room analysis: {title}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Recursive Progress Bar */}
+              {status === 'generating' && (
+                <div className="space-y-2 mb-6">
+                  <div className="flex justify-between text-sm">
+                    <span className="font-medium">Batch Progress</span>
+                    <span>{completedBatches}/7 batches</span>
+                  </div>
+                  <div className="h-3 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-primary transition-all duration-500"
+                      style={{ width: `${(completedBatches / 7) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
               {/* Progress Steps */}
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {steps.map((step) => (
                   <div
                     key={step.number}
-                    className="flex items-center gap-3 p-3 rounded-lg bg-muted/30"
+                    className={`flex items-center gap-3 p-2 rounded-lg ${
+                      step.status === 'in_progress' ? 'bg-primary/10' : 'bg-muted/30'
+                    }`}
                   >
-                    <div className="flex-shrink-0">{getStepIcon(step.status)}</div>
+                    <div className="flex-shrink-0 w-6">{getStepIcon(step.status)}</div>
                     <div className="flex-1">
-                      <p className="font-medium">{step.label}</p>
+                      <p className={`text-sm ${step.status === 'in_progress' ? 'font-medium' : ''}`}>
+                        {step.label}
+                      </p>
                     </div>
                   </div>
                 ))}
@@ -393,8 +339,57 @@ export default function HistoricalScriptingPage() {
               {/* Generated Script */}
               {scriptData && (
                 <div className="space-y-4 mt-6">
+                  {/* Hook Preview */}
+                  <div className="bg-amber-50 dark:bg-amber-950/20 border-l-4 border-amber-400 p-4 rounded-r-lg">
+                    <h4 className="font-bold text-amber-800 dark:text-amber-200 mb-2">
+                      HOOK (60 sec)
+                    </h4>
+                    <p className="text-sm italic text-amber-700 dark:text-amber-300">
+                      {scriptData.hook}
+                    </p>
+                  </div>
+
+                  {/* Master Outline Collapsible */}
+                  <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                    <button
+                      onClick={() => setShowOutline(!showOutline)}
+                      className="w-full flex items-center justify-between p-4 text-left"
+                    >
+                      <span className="font-bold text-blue-800 dark:text-blue-200">
+                        Master Tactical Outline (10 Points)
+                      </span>
+                      {showOutline ? (
+                        <ChevronUp className="h-5 w-5 text-blue-600" />
+                      ) : (
+                        <ChevronDown className="h-5 w-5 text-blue-600" />
+                      )}
+                    </button>
+                    {showOutline && scriptData.master_outline && (
+                      <div className="px-4 pb-4 space-y-2 text-sm">
+                        {Object.entries(scriptData.master_outline)
+                          .filter(([key]) => key !== 'generated_at')
+                          .map(([key, section]) => {
+                            const typedSection = section as { title: string; key_points: string[] };
+                            return (
+                              <div key={key} className="border-b border-blue-100 dark:border-blue-800 pb-2">
+                                <div className="font-medium text-blue-800 dark:text-blue-200">
+                                  {typedSection.title}
+                                </div>
+                                <ul className="text-blue-600 dark:text-blue-400 text-xs mt-1 list-disc list-inside">
+                                  {typedSection.key_points?.map((point: string, i: number) => (
+                                    <li key={i}>{point}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Actions and Stats */}
                   <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold">Generated Script</h3>
+                    <h3 className="text-lg font-semibold">Full Script</h3>
                     <div className="flex gap-2">
                       <Button variant="outline" size="sm" onClick={handleCopy}>
                         {copied ? (
@@ -418,21 +413,21 @@ export default function HistoricalScriptingPage() {
                   <div className="grid grid-cols-3 gap-4 text-sm">
                     <div className="bg-muted/50 p-3 rounded">
                       <div className="text-muted-foreground">Word Count</div>
-                      <div className="text-xl font-bold">{scriptData.word_count}</div>
+                      <div className="text-xl font-bold">{scriptData.total_word_count}</div>
                     </div>
                     <div className="bg-muted/50 p-3 rounded">
                       <div className="text-muted-foreground">Duration</div>
                       <div className="text-xl font-bold">~{estimatedDuration} min</div>
                     </div>
                     <div className="bg-muted/50 p-3 rounded">
-                      <div className="text-muted-foreground">Tone</div>
-                      <div className="text-xl font-bold">{scriptData.tone}</div>
+                      <div className="text-muted-foreground">Batches</div>
+                      <div className="text-xl font-bold">{scriptData.batches?.length || 0}</div>
                     </div>
                   </div>
 
                   <div className="bg-card border border-border rounded-lg p-4 max-h-96 overflow-y-auto">
                     <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed">
-                      {scriptData.content}
+                      {scriptData.full_script}
                     </pre>
                   </div>
                 </div>

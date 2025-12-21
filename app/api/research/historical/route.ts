@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { SYSTEM_PROMPT, HISTORICAL_RESEARCH_PROMPT } from '@/lib/prompts/all-prompts';
-import type { HistoricalEra, ContentType, HistoricalResearch } from '@/lib/types';
+import { SYSTEM_PROMPT, TACTICAL_RESEARCH_PROMPT } from '@/lib/prompts/all-prompts';
+import type { TacticalResearch } from '@/lib/types';
 
 export const runtime = 'edge';
 export const maxDuration = 60;
@@ -8,45 +8,36 @@ export const maxDuration = 60;
 const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY;
 const PERPLEXITY_API_URL = 'https://api.perplexity.ai/chat/completions';
 
-interface HistoricalResearchRequest {
+interface TacticalResearchRequest {
   title: string;
-  era: HistoricalEra;
-  contentType: ContentType;
-  targetDuration: number; // Target video duration in minutes (passed through)
+  targetDuration: number; // Target video duration in minutes
 }
 
 /**
  * POST /api/research/historical
  *
- * PROMPT 1: Historical Research & Fact Validation
- * Uses Perplexity to gather historically accurate information
+ * PROMPT 1: Tactical Research & Telemetry Extraction
+ * Uses Perplexity to gather precise battlefield data
  */
 export async function POST(request: NextRequest) {
   try {
-    const body: HistoricalResearchRequest = await request.json();
-    const { title, era, contentType } = body;
+    const body: TacticalResearchRequest = await request.json();
+    const { title } = body;
 
     // Validation
     if (!title || title.trim().length === 0) {
       return NextResponse.json({ error: 'Title is required' }, { status: 400 });
     }
 
-    if (!era || !contentType) {
-      return NextResponse.json(
-        { error: 'Era and content type are required' },
-        { status: 400 }
-      );
-    }
+    console.log(`[Tactical Research] Starting telemetry extraction for: "${title}"`);
 
-    console.log(`[Historical Research] Starting research for: "${title}" (${era}, ${contentType})`);
+    // Step 1: Conduct initial Perplexity research for raw battle data
+    const perplexityResults = await conductTacticalResearch(title);
 
-    // Step 1: Conduct Perplexity research for raw historical data
-    const perplexityResults = await conductHistoricalResearch(title, era, contentType);
+    console.log(`[Tactical Research] Initial research completed, structuring telemetry...`);
 
-    console.log(`[Historical Research] Perplexity research completed, processing...`);
-
-    // Step 2: Use the historical research prompt to structure the findings
-    const prompt = HISTORICAL_RESEARCH_PROMPT(title, era, contentType);
+    // Step 2: Use the tactical research prompt to structure the findings
+    const prompt = TACTICAL_RESEARCH_PROMPT(title);
 
     // Call Perplexity again with our structured prompt
     const structuredResponse = await fetch(PERPLEXITY_API_URL, {
@@ -81,13 +72,16 @@ export async function POST(request: NextRequest) {
       throw new Error('No structured content returned from Perplexity API');
     }
 
-    console.log(`[Historical Research] Structured research completed`);
+    console.log(`[Tactical Research] Structured telemetry completed`);
 
     // Parse the JSON response
-    let researchData: HistoricalResearch;
+    let researchData: TacticalResearch;
     try {
       // Remove markdown code blocks if present
-      const cleanedContent = structuredContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      const cleanedContent = structuredContent
+        .replace(/```json\n?/g, '')
+        .replace(/```\n?/g, '')
+        .trim();
 
       // Try to extract JSON from the response
       const jsonMatch = cleanedContent.match(/\{[\s\S]*\}/);
@@ -111,23 +105,26 @@ export async function POST(request: NextRequest) {
 
       // Ensure generated_at is a Date object
       researchData.generated_at = new Date();
+
+      // Validate numeric data - warn if vague terms are detected
+      validateTacticalData(researchData);
     } catch (parseError) {
-      console.error('[Historical Research] JSON parse error:', parseError);
+      console.error('[Tactical Research] JSON parse error:', parseError);
       console.error('Response content:', structuredContent.substring(0, 500));
 
       // Return a fallback structure
       return NextResponse.json(
         {
           success: false,
-          error: 'Failed to parse research data',
+          error: 'Failed to parse tactical research data',
           raw_content: structuredContent,
         },
         { status: 500 }
       );
     }
 
-    // Step 3: Generate AI-powered art style based on the era
-    console.log(`[Historical Research] Generating art style for ${era}...`);
+    // Step 3: Generate AI-powered art style based on the inferred era
+    console.log(`[Tactical Research] Generating art style for ${researchData.era}...`);
     let artStyle: string | undefined;
 
     try {
@@ -139,8 +136,7 @@ export async function POST(request: NextRequest) {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            era,
-            contentType,
+            era: researchData.era,
             title,
           }),
         }
@@ -150,14 +146,14 @@ export async function POST(request: NextRequest) {
         const artStyleData = await artStyleResponse.json();
         if (artStyleData.success && artStyleData.artStyle) {
           artStyle = artStyleData.artStyle;
-          console.log(`[Historical Research] Art style generated successfully`);
+          console.log(`[Tactical Research] Art style generated successfully`);
         }
       } else {
-        console.warn('[Historical Research] Art style generation failed, will use default');
+        console.warn('[Tactical Research] Art style generation failed, will use default');
       }
     } catch (artStyleError) {
-      console.warn('[Historical Research] Art style generation error:', artStyleError);
-      console.warn('[Historical Research] Continuing without custom art style');
+      console.warn('[Tactical Research] Art style generation error:', artStyleError);
+      console.warn('[Tactical Research] Continuing without custom art style');
     }
 
     return NextResponse.json({
@@ -166,14 +162,14 @@ export async function POST(request: NextRequest) {
       artStyle, // Include art style in response
     });
   } catch (error) {
-    console.error('[Historical Research] Error:', error);
+    console.error('[Tactical Research] Error:', error);
 
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
 
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to conduct historical research',
+        error: 'Failed to conduct tactical research',
         details: errorMessage,
       },
       { status: 500 }
@@ -182,20 +178,49 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * Conduct initial research using Perplexity AI
+ * Validate tactical data has specific numbers, not vague terms
  */
-async function conductHistoricalResearch(
-  title: string,
-  era: HistoricalEra,
-  contentType: ContentType
-): Promise<string> {
+function validateTacticalData(research: TacticalResearch): void {
+  const vagueTerms = ['thousands', 'many', 'numerous', 'significant', 'several', 'countless'];
+
+  // Check faction strengths
+  for (const faction of research.factions || []) {
+    if (typeof faction.total_strength !== 'number') {
+      console.warn(`[Tactical Validation] Faction ${faction.name} has non-numeric strength`);
+    }
+  }
+
+  // Check casualty data
+  const casualtyData = research.casualty_data;
+  if (casualtyData) {
+    if (typeof casualtyData.faction_a_casualties !== 'number') {
+      console.warn('[Tactical Validation] Faction A casualties is not a number');
+    }
+    if (typeof casualtyData.faction_b_casualties !== 'number') {
+      console.warn('[Tactical Validation] Faction B casualties is not a number');
+    }
+  }
+
+  // Check for vague terms in string fields
+  const jsonStr = JSON.stringify(research).toLowerCase();
+  for (const term of vagueTerms) {
+    if (jsonStr.includes(term)) {
+      console.warn(`[Tactical Validation] Found vague term "${term}" in research data`);
+    }
+  }
+}
+
+/**
+ * Conduct initial tactical research using Perplexity AI
+ */
+async function conductTacticalResearch(title: string): Promise<string> {
   if (!PERPLEXITY_API_KEY) {
     throw new Error('PERPLEXITY_API_KEY is not configured');
   }
 
-  const searchQuery = buildResearchQuery(title, era, contentType);
+  const searchQuery = buildTacticalQuery(title);
 
-  console.log('[Perplexity] Historical research query:', searchQuery);
+  console.log('[Perplexity] Tactical research query:', searchQuery);
 
   const response = await fetch(PERPLEXITY_API_URL, {
     method: 'POST',
@@ -209,7 +234,7 @@ async function conductHistoricalResearch(
         {
           role: 'system',
           content:
-            'You are a historical research specialist. Provide factually accurate, detailed historical information with specific dates, names, and sources.',
+            'You are a tactical military analyst. Provide precise, quantified military data with specific numbers for troop counts, casualty figures, and unit compositions. NEVER use vague terms like "thousands" - always give specific numbers.',
         },
         {
           role: 'user',
@@ -217,7 +242,7 @@ async function conductHistoricalResearch(
         },
       ],
       temperature: 0.2,
-      max_tokens: 3000,
+      max_tokens: 4000,
       return_citations: true,
     }),
   });
@@ -234,72 +259,51 @@ async function conductHistoricalResearch(
     throw new Error('No content returned from Perplexity API');
   }
 
-  console.log('[Perplexity] Research completed, length:', researchContent.length);
+  console.log('[Perplexity] Tactical research completed, length:', researchContent.length);
 
   return researchContent;
 }
 
 /**
- * Build research query based on content type
+ * Build tactical research query
  */
-function buildResearchQuery(title: string, era: HistoricalEra, contentType: ContentType): string {
-  const baseQuery = `Research the historical topic: "${title}" (${era} era)`;
+function buildTacticalQuery(title: string): string {
+  return `Research the battle/military engagement: "${title}"
 
-  const contentTypeQueries = {
-    Biography: `
-      Provide detailed biographical information including:
-      - Complete chronological timeline with specific dates
-      - Major life events and turning points
-      - Relationships, allies, and enemies
-      - Quotes and anecdotes (with sources)
-      - Physical descriptions and personality traits
-      - Political/cultural context of their era
-      - Legacy and historical impact
-    `,
-    Battle: `
-      Provide comprehensive battle information including:
-      - Political and strategic context leading to the battle
-      - Specific date and location
-      - Commanders and their backgrounds
-      - Troop numbers, formations, and composition
-      - Chronological timeline of battle phases
-      - Tactical innovations and decisive moments
-      - Casualties and immediate aftermath
-      - Long-term historical significance
-    `,
-    Culture: `
-      Provide cultural details including:
-      - Daily life and social structures
-      - Architecture and urban planning
-      - Technology and innovations
-      - Religious practices and beliefs
-      - Food, clothing, and material culture
-      - Arts, literature, and entertainment
-      - Economic systems and trade
-      - Primary sources and archaeological evidence
-    `,
-    Mythology: `
-      Provide mythological information including:
-      - Primary source texts (authors and works)
-      - Core narrative arc and plot points
-      - Character descriptions and relationships
-      - Symbolic meanings and cultural context
-      - Variations in different tellings
-      - Historical practices connected to the myth
-      - Modern interpretations
-    `,
-  };
+REQUIRED DATA (with SPECIFIC NUMBERS):
 
-  return `${baseQuery}
+1. FORCE COMPOSITION:
+   - Exact troop numbers for each side (e.g., "8,000 heavy infantry")
+   - Unit types and counts (cavalry, infantry, archers, etc.)
+   - Commander names and ranks
+   - Weapon types and specifications (lengths, materials)
+   - Armor types and coverage
+   - Formation doctrines used
 
-${contentTypeQueries[contentType]}
+2. TERRAIN & ENVIRONMENT:
+   - Exact battle location with coordinates if known
+   - Elevation data and terrain features
+   - Weather conditions on the day
+   - Tactical advantages/disadvantages of terrain
 
-IMPORTANT REQUIREMENTS:
-- Prioritize factual accuracy over dramatic storytelling
-- Include specific dates (year, month, day if known)
-- Cite primary sources (ancient texts) and scholarly works
-- Provide rich sensory details (what people saw, heard, felt)
-- Include architectural, clothing, and equipment details
-- Note where historians disagree or evidence is uncertain
-- Distinguish clearly between fact and legend`;
+3. BATTLE TIMELINE:
+   - Opening phase and time
+   - Key turning points
+   - Critical tactical decisions
+   - Collapse/rout timing
+   - Pursuit phase
+
+4. CASUALTY DATA:
+   - SPECIFIC casualty numbers for each side (not ranges)
+   - Kill ratio calculation
+   - Prisoner counts
+   - Commander fates (killed, captured, escaped)
+
+5. TACTICAL ANALYSIS:
+   - What made one side win/lose
+   - Key tactical innovations or errors
+   - How formations performed
+   - Morale factors
+
+CRITICAL: Provide EXACT NUMBERS. If sources give ranges like "30,000-50,000", use the most commonly cited figure. If historians disagree, pick the scholarly consensus. NEVER respond with vague terms like "thousands" or "many".`;
 }

@@ -1,76 +1,115 @@
 // ============================================================================
-// HISTORIA ENGINE - HISTORICAL NARRATIVE PROMPT SYSTEM
+// WAR ROOM ENGINE - TACTICAL DOCUMENTARY PROMPT SYSTEM
 // ============================================================================
 
-import type { HistoricalEra, ContentType, NarrativeTone } from '@/lib/types';
+import type {
+  HistoricalEra,
+  TacticalResearch,
+  TacticalOutline,
+  RecursivePromptPayload,
+} from '@/lib/types';
 
-export const SYSTEM_PROMPT = `You are Historia, an AI-powered historical storytelling engine. You specialize in transforming historical events into compelling, accurate, and cinematic narratives suitable for educational YouTube content.`;
+export const SYSTEM_PROMPT = `You are the War Room, a tactical documentary engine that analyzes historical battles with the precision of post-game analysis. You use gaming terminology to explain the mechanics of warfare - treating units as builds, terrain as map meta, and tactical decisions as exploits or errors. Your style is analytical, assertive, and gamified. You never use flowery language about "valor" or "heroism" - you discuss kill ratios, morale thresholds, and flank efficiency.`;
 
 // ============================================================================
-// PROMPT 1: HISTORICAL RESEARCH & FACT VALIDATION
+// WAR ROOM STYLE CONSTRAINTS
 // ============================================================================
 
-export const HISTORICAL_RESEARCH_PROMPT = (
-  title: string,
-  era: HistoricalEra,
-  contentType: ContentType
-) => `### ROLE
+export const WAR_ROOM_STYLE = {
+  prohibited_words: [
+    'brave',
+    'valor',
+    'heroic',
+    'courage',
+    'heartland',
+    'destiny',
+    'legend',
+    'ancient',
+    'mysterious',
+    'whispers',
+  ],
+  mandatory_terminology: [
+    'meta',
+    'debuff',
+    'kill ratio',
+    'disparity',
+    'collision',
+    'phalanx-depth',
+    'reload-cycle',
+    'spawn',
+    'flank-efficiency',
+    'morale-threshold',
+  ],
+  style_rules: [
+    'Use em-dashes for transitions',
+    "Use contractions only (it's, don't, won't)",
+    'Convert numbers to narrative stats (e.g., "A 12-to-1 disparity")',
+    'Discuss unit "buffs" (High ground) and "debuffs" (Mud/Stamina)',
+    'Gaming/tactical terminology throughout',
+  ],
+};
 
-You are the **Historical Research Specialist**, the first critical stage in the Historia storytelling engine. Your expertise spans Roman, Medieval, Napoleonic, and Prussian history.
+// ============================================================================
+// PROMPT 1: TACTICAL RESEARCH (PERPLEXITY)
+// ============================================================================
+
+export const TACTICAL_RESEARCH_PROMPT = (title: string) => `### ROLE
+
+You are a **Tactical Intelligence Analyst** extracting raw battlefield telemetry for a War Room tactical documentary. Your data will be used to analyze combat mechanics, unit effectiveness, and kill ratios.
 
 ### OBJECTIVE
 
-Conduct comprehensive historical research on the given topic to gather factually accurate information suitable for creating a compelling narrative. Focus on chronological events, key figures, sensory details, and dramatic arcs.
+Extract precise, QUANTIFIED military data. NO vague descriptors like "thousands died" or "many soldiers" -- you MUST provide specific numbers, even if you need to estimate based on historical consensus.
 
-### INPUTS
+### TOPIC
+- **BATTLE/EVENT:** ${title}
 
-- **TOPIC:** ${title}
-- **ERA:** ${era}
-- **CONTENT TYPE:** ${contentType}
+### ERA DETERMINATION (CRITICAL)
+You MUST determine the historical era of this battle/event. Choose from:
+- "Roman Republic" (509 BC - 27 BC)
+- "Roman Empire" (27 BC - 476 AD)
+- "Medieval" (500 AD - 1500 AD)
+- "Napoleonic" (1799 - 1815)
+- "Prussian" (1701 - 1918)
+- "Other" (any other period)
 
-### RESEARCH REQUIREMENTS
+Include your determination in the "era" field of the JSON response.
 
-${contentType === 'Biography' ? `
-**For Biographical Content:**
-1. Chronicle the subject's life in chronological order with specific dates
-2. Identify 3-5 key turning points that shaped their legacy
-3. Gather quotes, anecdotes, and personality traits
-4. Research their relationships, allies, and enemies
-5. Document the political and cultural context of their era
-` : ''}
-${contentType === 'Battle' ? `
-**For Battle Narratives:**
-1. Establish the political/strategic context that led to the conflict
-2. Document troop numbers, commanders, and military formations
-3. Create a chronological timeline of the battle phases
-4. Identify the decisive moments and tactical innovations
-5. Research the aftermath and historical significance
-` : ''}
-${contentType === 'Culture' ? `
-**For Cultural Deep-Dives:**
-1. Document daily life, social hierarchies, and customs
-2. Research technological innovations and architectural achievements
-3. Explore religious beliefs, festivals, and rituals
-4. Gather information about food, clothing, and material culture
-5. Understand the economic systems and trade networks
-` : ''}
-${contentType === 'Mythology' ? `
-**For Mythological Retellings:**
-1. Identify the primary source texts (Virgil, Ovid, Geoffrey of Monmouth, etc.)
-2. Extract the core narrative arc and key plot points
-3. Research the cultural context and symbolic meanings
-4. Note variations in different tellings
-5. Connect myth to historical practices or beliefs
-` : ''}
+### REQUIRED TELEMETRY
 
-### SENSORY DETAIL REQUIREMENTS
+**FACTION DATA (for EACH side):**
+- Commander name and rank
+- Total force strength (EXACT number - estimate if needed, but provide a number)
+- Unit breakdown with counts (e.g., "8,000 heavy infantry, 2,000 cavalry, 500 archers")
+- Weapon specifics: type, length (e.g., "18-foot sarissa"), material
+- Armor: type, material, coverage percentage
+- Formation doctrine (phalanx depth, wedge angles, etc.)
+- BUFFS: Tactical advantages (terrain control, supply lines, morale state)
+- DEBUFFS: Tactical disadvantages (fatigue, mud, disease, supply issues)
 
-Provide rich, historically accurate sensory details:
-- **Setting:** Describe the physical environment (terrain, buildings, landscapes)
-- **Weather:** Note seasonal conditions, climate typical of the region
-- **Sounds:** Battle cries, crowd noise, construction sounds, nature
-- **Visuals:** Colors, lighting, architectural details, clothing materials
-- **Textures:** Stone, marble, bronze, leather, wool, silk
+**TERRAIN ANALYSIS:**
+- Exact location with coordinates if known
+- Elevation differentials (e.g., "Romans held 50m high ground advantage")
+- Terrain type affecting movement and formations
+- Weather conditions on battle day
+- Tactical chokepoints, obstacles, or natural features
+
+**CASUALTY TELEMETRY:**
+- Faction A casualties (specific number)
+- Faction B casualties (specific number)
+- Kill ratio expressed as X-to-1 (e.g., "12-to-1 in favor of Faction A")
+- Prisoner/captured counts
+- Notable commander deaths or captures
+
+**BATTLE PHASES:**
+- Opening moves and approximate time
+- Critical turning point (the moment the kill ratio shifted)
+- Collapse/rout timing
+- Pursuit duration and additional casualties
+
+### CRITICAL INSTRUCTION
+
+If your sources give ranges like "30,000-50,000", pick the most commonly cited number and use it. If historians estimate "between 50,000 and 70,000", use 60,000. NEVER return vague terms like "thousands", "many", "numerous", or "significant casualties" -- ALWAYS provide a specific number.
 
 ### OUTPUT FORMAT
 
@@ -78,294 +117,366 @@ Respond with a JSON object (and ONLY valid JSON, no markdown code blocks):
 
 {
   "topic": "${title}",
-  "era": "${era}",
+  "era": "<YOUR_DETERMINED_ERA>",
+  "factions": [
+    {
+      "name": "Faction Name",
+      "commander": "Commander Name and Title",
+      "unit_composition": [
+        {
+          "unit_type": "Heavy Infantry",
+          "count": 8000,
+          "equipment": {
+            "primary_weapon": "Gladius",
+            "weapon_length": "24 inches",
+            "armor_type": "Lorica Segmentata",
+            "armor_material": "Iron plates",
+            "shield": "Scutum"
+          },
+          "formation": "Triplex Acies",
+          "phalanx_depth": null
+        }
+      ],
+      "total_strength": 25000,
+      "buffs": ["High ground advantage", "Fresh troops", "Superior discipline"],
+      "debuffs": ["Extended supply lines", "Unfamiliar terrain"]
+    }
+  ],
+  "terrain_analysis": {
+    "location": "Specific location name and region",
+    "elevation": "Valley floor, defenders held 30m ridge advantage",
+    "terrain_type": "Open plain with muddy conditions from recent rain",
+    "weather_conditions": "Overcast, light rain, reducing visibility",
+    "tactical_advantages": ["Natural chokepoint on the left flank"],
+    "tactical_disadvantages": ["Mud reducing cavalry effectiveness by ~40%"]
+  },
+  "casualty_data": {
+    "faction_a_casualties": 400,
+    "faction_b_casualties": 20000,
+    "kill_ratio": "50-to-1",
+    "total_deaths": 20400
+  },
   "timeline": [
     {
-      "date": "49 BC, January 10",
-      "event": "Caesar crosses the Rubicon",
-      "significance": "Point of no return; civil war begins"
+      "phase": "Opening",
+      "time_marker": "Dawn, approximately 6:00 AM",
+      "event": "Skirmishers deployed to probe enemy lines",
+      "tactical_significance": "Revealed weakness on the right flank"
     }
   ],
-  "key_figures": [
-    {
-      "name": "Julius Caesar",
-      "role": "Roman General and Dictator",
-      "description": "Ambitious military commander seeking power",
-      "notable_actions": ["Conquered Gaul", "Crossed Rubicon", "Defeated Pompey"]
-    }
-  ],
-  "sensory_details": {
-    "setting": "The Rubicon River, northern Italy, a shallow stream marking the boundary of Rome's sacred territory",
-    "weather": "Cold winter morning, mist rising from the water",
-    "sounds": "Marching legions, clinking armor, rushing water, war horns",
-    "visuals": "Red cloaks of centurions, gleaming bronze helmets, eagle standards, muddy riverbanks",
-    "textures": "Cold iron of swords, wet leather sandals, rough wool cloaks"
-  },
-  "primary_sources": ["Plutarch's Life of Caesar", "Suetonius' Twelve Caesars", "Appian's Civil Wars"],
-  "dramatic_arcs": [
-    "Rising ambition clashes with Republican tradition",
-    "The gamble that changes history",
-    "From general to dictator to martyr"
-  ],
-  "cultural_context": "Roman Republic in crisis, Senate vs. military strongmen, end of 500 years of republican government",
-  "raw_research_data": "Additional context, scholarly debates, archaeological evidence..."
+  "primary_sources": ["Source 1", "Source 2"],
+  "generated_at": "${new Date().toISOString()}"
 }
 
 ### CONSTRAINTS
 
-- Prioritize ACCURACY over drama. Do not invent facts.
-- Use specific dates whenever possible (year, month, day if known)
-- Cite primary sources (ancient texts) and major scholarly works
-- If dealing with myth, clearly distinguish myth from historical fact
-- Include dramatic arcs that are SUPPORTED by historical evidence
-- Provide enough visual detail for artists to recreate scenes
-
-### EXAMPLES OF GOOD SENSORY DETAILS
-
-❌ BAD: "The battle was intense"
-✅ GOOD: "The clash of 80,000 men at Cannae - the screech of gladius on scutum, the roar of Carthaginian war elephants, the metallic stench of blood mixing with dust under the August sun"
-
-❌ BAD: "Medieval castle"
-✅ GOOD: "A Norman motte-and-bailey fortress with oak palisades, stone keep topped with crenellated battlements, smoke from hearth fires drifting across the inner bailey where horses whinny and blacksmiths hammer iron"`;
+- EVERY number field MUST contain a specific number, not a range or vague term
+- If uncertain, provide your best estimate with the reasoning in tactical_significance
+- Focus on MECHANICS: how units fought, what made them effective or ineffective
+- Use gaming/tactical terminology where appropriate (buffs, debuffs, meta)
+- Identify the "exploit" - the tactical decision that broke the engagement`;
 
 // ============================================================================
-// PROMPT 2: NARRATIVE STRUCTURE & OUTLINE
+// PROMPT 2: WAR ROOM HOOK (60 SECONDS)
 // ============================================================================
 
-export const NARRATIVE_OUTLINE_PROMPT = (
-  title: string,
-  research: string,
-  tone: NarrativeTone
-) => `### ROLE
+export const HOOK_PROMPT = (research: TacticalResearch) => `### ROLE
 
-You are the **Narrative Architect**, responsible for transforming historical research into a compelling three-act dramatic structure suitable for YouTube storytelling.
+You are a **War Room Narrator** opening a tactical documentary. Your hook must achieve absolute retention in 60 seconds.
 
-### OBJECTIVE
+### HOOK FORMULA (60 seconds, ~150 words)
 
-Using the historical research provided, craft a narrative outline that organizes the facts into a dramatic arc. Your structure should create tension, build to a climax, and deliver emotional satisfaction while remaining historically accurate.
+Your hook MUST follow this exact 4-part structure:
 
-### INPUTS
+1. **TACTICAL ID** (one sentence):
+   Format: "[Era] [Unit Type] faces [Threat Type]"
+   Example: "Byzantine cataphracts face a Seljuk horse-archer swarm"
 
-- **TOPIC:** ${title}
-- **TONE:** ${tone}
-- **RESEARCH DATA:**
-${research}
+2. **KILL RATIO** (one sentence):
+   Format: "The disparity: [X vs Y]"
+   Example: "The disparity: 500 Greeks against 20,000 Persians"
 
-### NARRATIVE STRUCTURE REQUIREMENTS
+3. **STRATEGIC BRIDGE** (one sentence):
+   The "exploit" -- what made this battle's outcome possible
+   Example: "But the Greeks knew something the Persians didn't -- in that narrow pass, numbers meant nothing"
 
-**Three-Act Structure:**
+4. **COMMAND PROMISE** (one sentence):
+   ALWAYS end with exactly: "Let's look at the war room data."
 
-**ACT 1 - SETUP (25% of narrative)**
-- Establish the world, time period, and historical context
-- Introduce main characters/factions with their goals and motivations
-- Present the inciting incident or catalyst
-- Raise the central dramatic question
+### RESEARCH CONTEXT
 
-**ACT 2 - CONFLICT (50% of narrative)**
-- Escalate tensions through complications and obstacles
-- Show characters making consequential decisions
-- Include setbacks, betrayals, strategic maneuvers
-- Build to the point of maximum tension/crisis
+Topic: ${research.topic}
+Era: ${research.era}
+Factions: ${research.factions.map((f) => `${f.name} (${f.total_strength} troops)`).join(' vs ')}
+Kill Ratio: ${research.casualty_data.kill_ratio}
+Key Terrain: ${research.terrain_analysis.location}
 
-**ACT 3 - RESOLUTION (25% of narrative)**
-- Deliver the climactic moment (battle, assassination, coronation, etc.)
-- Show immediate consequences
-- Reveal the historical legacy and long-term impact
-- Answer the dramatic question posed in Act 1
+### STYLE CONSTRAINTS (CRITICAL)
 
-### TONE GUIDELINES
+**PROHIBITED WORDS (DO NOT USE):**
+${WAR_ROOM_STYLE.prohibited_words.join(', ')}
 
-${tone === 'Epic' ? `
-**EPIC TONE:**
-- Emphasize heroism, larger-than-life characters, grand scale
-- Use dramatic language: "The fate of empires hung in the balance"
-- Focus on pivotal moments that shaped civilizations
-- Celebrate courage, sacrifice, and ambition
-` : ''}
-${tone === 'Documentary' ? `
-**DOCUMENTARY TONE:**
-- Emphasize facts, analysis, and historical significance
-- Use measured language: "Historians debate the true motivations"
-- Include multiple perspectives and scholarly interpretation
-- Focus on cause-and-effect, political complexity
-` : ''}
-${tone === 'Tragic' ? `
-**TRAGIC TONE:**
-- Emphasize hubris, downfall, and the cost of ambition
-- Use melancholic language: "His triumph contained the seeds of his destruction"
-- Focus on fatal flaws, betrayals, and irreversible choices
-- Highlight the human cost and moral complexity
-` : ''}
-${tone === 'Educational' ? `
-**EDUCATIONAL TONE:**
-- Emphasize learning, context, and broader lessons
-- Use clear language: "This event illustrates the principle of..."
-- Include historical parallels and modern relevance
-- Focus on systems, institutions, and long-term trends
-` : ''}
+**REQUIRED TERMINOLOGY (use at least 2):**
+${WAR_ROOM_STYLE.mandatory_terminology.join(', ')}
+
+**STYLE RULES:**
+- Use contractions (it's, don't, won't)
+- Em-dashes for dramatic pauses
+- Gaming/tactical terminology
+
+### OUTPUT
+
+Return ONLY the hook text (~150 words). No JSON, no metadata, no formatting. Just the spoken narration.
+
+**EXAMPLE HOOK:**
+
+Roman heavy infantry faces a Carthaginian double-envelopment trap. The disparity: 86,000 Romans against 50,000 Carthaginians -- but Hannibal's positioned on the kill-optimal terrain. Rome's sending wave after wave into what they don't realize is a spawn trap -- the Carthaginian crescent formation isn't retreating, it's compressing. By the time the Roman commanders realize the flank-efficiency of Hannibal's cavalry, 70,000 of their men will be dead in a single afternoon. Let's look at the war room data.`;
+
+// ============================================================================
+// PROMPT 3: MASTER TACTICAL OUTLINE (10 POINTS)
+// ============================================================================
+
+export const MASTER_OUTLINE_PROMPT = (research: TacticalResearch, hook: string) => `### ROLE
+
+You are a **Tactical Documentary Architect** creating a 10-point master outline for a 35-minute War Room analysis.
+
+### THE 10-POINT TACTICAL STRUCTURE
+
+1. **THE MAP META** - Terrain Analysis
+   How geography shapes the tactical options. Elevation buffs, chokepoint exploits, terrain debuffs.
+
+2. **FACTION A BUILD** - Equipment/Stats
+   Unit composition, weapons, armor, formation doctrine. The "character build" of this army.
+
+3. **FACTION B BUILD** - Counter-measures
+   How the opposing force is configured. What counters what.
+
+4. **OPENING SKIRMISH** - The Probing
+   Initial contact, testing enemy response, gathering intel.
+
+5. **THE CRITICAL ERROR** - The Spawn Trap
+   The decisive mistake that creates vulnerability. The exploit that will be punished.
+
+6. **THE UNIT COLLISION** - The Grind
+   Main engagement, attrition phase, morale threshold testing.
+
+7. **THE FLANKING EXPLOIT** - The Finisher
+   The tactical move that breaks the stalemate and shifts kill ratio decisively.
+
+8. **THE ROUT** - The Kill Screen
+   Collapse, pursuit, the mathematics of fleeing units vs pursuing cavalry.
+
+9. **AFTERMATH TELEMETRY** - Total Casualties
+   Final numbers, prisoner counts, commander fates, the kill ratio summary.
+
+10. **HISTORICAL PATCH NOTES** - Long-term Impact
+    How this battle changed warfare, politics, or the meta of future conflicts.
+
+### RESEARCH DATA
+
+Topic: ${research.topic}
+Era: ${research.era}
+
+Factions:
+${JSON.stringify(research.factions, null, 2)}
+
+Terrain:
+${JSON.stringify(research.terrain_analysis, null, 2)}
+
+Casualties:
+${JSON.stringify(research.casualty_data, null, 2)}
+
+Timeline:
+${JSON.stringify(research.timeline, null, 2)}
+
+### HOOK (for continuity)
+${hook}
 
 ### OUTPUT FORMAT
 
-Respond with a JSON object (and ONLY valid JSON, no markdown code blocks):
+Return a JSON object (and ONLY valid JSON, no markdown code blocks):
 
 {
-  "act1_setup": {
-    "act_name": "Setup",
-    "scenes": [
-      "Establish Rome in 49 BC - Senate vs. Caesar tension",
-      "Caesar's triumphs in Gaul vs. Pompey's political maneuvering",
-      "Senate orders Caesar to disband army - the ultimatum"
-    ],
-    "goal": "Establish the political crisis and Caesar's impossible choice",
-    "emotional_arc": "Building tension and dread",
-    "key_moments": ["Senate ultimatum delivered", "Caesar's final council with officers"]
+  "the_map_meta": {
+    "title": "The Map Meta",
+    "key_points": ["Point 1", "Point 2", "Point 3"],
+    "estimated_word_count": 600
   },
-  "act2_conflict": {
-    "act_name": "Conflict",
-    "scenes": [
-      "Caesar's night of decision at the Rubicon",
-      "The crossing - 'Alea iacta est' - the die is cast",
-      "Rapid march on Rome, cities opening gates without resistance",
-      "Pompey's retreat, Senate flees to Greece",
-      "Caesar enters Rome unopposed but constitution is shattered"
-    ],
-    "goal": "Show the cascading consequences of Caesar's gamble",
-    "emotional_arc": "From uncertainty to unstoppable momentum to hollow victory",
-    "key_moments": ["The crossing itself", "Rome's gates opening", "Empty Senate"]
+  "faction_a_build": {
+    "title": "Faction A Build",
+    "key_points": ["Unit breakdown", "Weapon stats", "Formation doctrine"],
+    "estimated_word_count": 600
   },
-  "act3_resolution": {
-    "act_name": "Resolution",
-    "scenes": [
-      "Caesar appointed Dictator - unprecedented power",
-      "The Ides of March - assassination in Pompey's theater",
-      "Rome descends into further civil war",
-      "Legacy: the death of the Republic, birth of Empire"
-    ],
-    "goal": "Show the ultimate price of Caesar's ambition and the end of the Republic",
-    "emotional_arc": "From triumph to tragedy to historical transformation",
-    "key_moments": ["'Et tu, Brute?'", "Augustus rises from the ashes"]
+  "faction_b_build": {
+    "title": "Faction B Build",
+    "key_points": ["Counter-composition", "Tactical approach"],
+    "estimated_word_count": 500
   },
-  "narrative_theme": "The fatal cost of ambition and the fragility of republican institutions",
-  "dramatic_question": "Can Caesar save Rome by breaking its most sacred laws?",
-  "generated_at": "2025-11-28T..."
+  "opening_skirmish": {
+    "title": "Opening Skirmish",
+    "key_points": ["Initial deployment", "Probing attacks"],
+    "estimated_word_count": 500
+  },
+  "the_critical_error": {
+    "title": "The Critical Error",
+    "key_points": ["The mistake", "Why it was exploitable"],
+    "estimated_word_count": 700
+  },
+  "the_unit_collision": {
+    "title": "The Unit Collision",
+    "key_points": ["Main engagement mechanics", "Attrition"],
+    "estimated_word_count": 700
+  },
+  "the_flanking_exploit": {
+    "title": "The Flanking Exploit",
+    "key_points": ["The winning move", "Kill ratio shift"],
+    "estimated_word_count": 600
+  },
+  "the_rout": {
+    "title": "The Rout",
+    "key_points": ["Collapse mechanics", "Pursuit phase"],
+    "estimated_word_count": 500
+  },
+  "aftermath_telemetry": {
+    "title": "Aftermath Telemetry",
+    "key_points": ["Final casualty numbers", "Kill ratio summary"],
+    "estimated_word_count": 400
+  },
+  "historical_patch_notes": {
+    "title": "Historical Patch Notes",
+    "key_points": ["Long-term tactical impact", "How warfare changed"],
+    "estimated_word_count": 400
+  },
+  "generated_at": "${new Date().toISOString()}"
 }
 
-### CONSTRAINTS
+### TARGET WORD COUNT
 
-- Every scene must be grounded in historical fact
-- Maintain chronological order unless flashbacks serve dramatic purpose
-- Balance spectacle with character moments
-- Ensure the climax is the MOST dramatic historical event
-- The resolution must connect to historical legacy (what changed forever?)`;
+Total script target: 5,250-6,000 words (35 minutes at 150 words/min)
+Distribute across 10 sections, with more words for critical moments (Error, Collision, Exploit)`;
 
 // ============================================================================
-// PROMPT 3: FINAL SCRIPT GENERATION
+// PROMPT 4: RECURSIVE BATCH GENERATOR (800 WORDS PER BATCH)
 // ============================================================================
 
-export const FINAL_SCRIPT_PROMPT = (
-  title: string,
-  research: string,
-  outline: string,
-  tone: NarrativeTone,
-  era: HistoricalEra,
-  targetDuration: number
+// Helper function to get batch assignment from outline
+export const getBatchAssignment = (
+  batchNumber: number,
+  outline: TacticalOutline
+): string => {
+  const assignments: Record<number, (keyof Omit<TacticalOutline, 'generated_at'>)[]> = {
+    1: ['the_map_meta', 'faction_a_build'],
+    2: ['faction_b_build', 'opening_skirmish'],
+    3: ['the_critical_error'],
+    4: ['the_unit_collision'],
+    5: ['the_flanking_exploit'],
+    6: ['the_rout'],
+    7: ['aftermath_telemetry', 'historical_patch_notes'],
+  };
+
+  const sections = assignments[batchNumber] || [];
+  return sections
+    .map((key) => {
+      const section = outline[key];
+      return `**${section.title}:** ${section.key_points.join('; ')}`;
+    })
+    .join('\n');
+};
+
+export const RECURSIVE_BATCH_PROMPT = (
+  batchNumber: number,
+  outline: TacticalOutline,
+  research: TacticalResearch,
+  previousPayload: RecursivePromptPayload | null,
+  _previousChunks: string[] // Reserved for future context window management
 ) => `### ROLE
 
-You are a **Master Historical Storyteller**, writing narration for a premium YouTube history channel in the style of Epic History TV, Kings and Generals, or Fall of Civilizations.
+You are a **War Room Narrator** generating batch ${batchNumber} of 7 for a tactical documentary.
 
-### OBJECTIVE
+### BATCH ASSIGNMENT
 
-Write a compelling, historically accurate narration script that brings the past to life. Your script will be read by a professional voice actor and accompanied by dramatic visuals. Every sentence should be cinematic, immersive, and factually grounded.
+${getBatchAssignment(batchNumber, outline)}
 
-### INPUTS
+### PREVIOUS CONTEXT
 
-- **TOPIC:** ${title}
-- **ERA:** ${era}
-- **TONE:** ${tone}
+${
+  previousPayload
+    ? `
+**DO NOT REPEAT - Summary of Previous:** ${previousPayload.summary_of_previous}
 
-**RESEARCH FINDINGS:**
-${research}
+**Current Momentum:** ${previousPayload.current_momentum}
 
-**NARRATIVE STRUCTURE:**
-${outline}
+**Your Objectives for This Batch:** ${previousPayload.next_objectives.join(', ')}
 
-### SCRIPT REQUIREMENTS
+**Style Reminder:** ${previousPayload.style_reminder}
+`
+    : 'This is the first batch. Start immediately after the hook - do NOT restate the hook.'
+}
 
-**Style Guidelines:**
-1. **Present-Tense Immersion:** Write as if the viewer is witnessing events unfold
-   - ✅ "Caesar stands at the Rubicon, the fate of Rome in his hands"
-   - ❌ "Caesar stood at the Rubicon"
+### RESEARCH DATA
 
-2. **Cinematic Language:** Use vivid, sensory descriptions
-   - ✅ "The clash of bronze echoes across the valley as 50,000 Carthaginians surge forward"
-   - ❌ "The battle begins with both sides fighting"
+Topic: ${research.topic}
+Era: ${research.era}
 
-3. **Historical Specificity:** Use exact numbers, dates, and names
-   - ✅ "On August 2, 216 BC, at Cannae in southern Italy..."
-   - ❌ "A long time ago, in a big battle..."
+Factions:
+${JSON.stringify(research.factions, null, 2)}
 
-4. **Dramatic Tension:** Build suspense even when outcome is known
-   - ✅ "He doesn't yet know that this decision will cost him his life in four years"
-   - ❌ "Then he was assassinated"
+Terrain:
+${JSON.stringify(research.terrain_analysis, null, 2)}
 
-5. **Authority & Credibility:** Reference sources when appropriate
-   - ✅ "According to Plutarch, Caesar pauses and utters the words..."
-   - ❌ "He probably said something like..."
+Casualties:
+${JSON.stringify(research.casualty_data, null, 2)}
 
-**Narration Structure:**
-- **Opening Hook (60 seconds):** Grab attention with the most dramatic moment or big question
-- **Act 1 (3-4 minutes):** Set the stage, introduce characters, establish stakes
-- **Act 2 (5-7 minutes):** Build tension, show conflict escalating
-- **Act 3 (3-4 minutes):** Deliver climax and resolution
-- **Closing (60 seconds):** Reflect on legacy and historical significance
+Timeline:
+${JSON.stringify(research.timeline, null, 2)}
 
-**Tone Execution:**
-${tone === 'Epic' ? '- Use grand, sweeping language celebrating heroism and scale\n- Emphasize the magnitude of decisions and their consequences\n- Invoke the weight of history' : ''}
-${tone === 'Documentary' ? '- Use measured, analytical language\n- Include scholarly perspective ("Historians debate...")\n- Explain causes and effects clearly' : ''}
-${tone === 'Tragic' ? '- Use melancholic, foreboding language\n- Emphasize irony and hubris\n- Highlight the human cost' : ''}
-${tone === 'Educational' ? '- Use clear, accessible language\n- Explain complex concepts simply\n- Draw connections to broader themes' : ''}
+### MASTER OUTLINE REFERENCE
 
-**Technical Specifications:**
-- **Target Length:** ${targetDuration * 150} words (${targetDuration} minutes of narration)
-- **Reading Level:** Accessible to general audience, sophisticated in content
-- **Pacing:** Vary sentence length (short for drama, longer for context)
-- **No Formatting:** No bold, italics, bullets, or headers - pure flowing prose
-- **TTS-Optimized:** Avoid complex punctuation that confuses text-to-speech
+${JSON.stringify(outline, null, 2)}
 
-### HISTORICAL ACCURACY REQUIREMENTS
+### STYLE CONSTRAINTS (CRITICAL - ENFORCED)
 
-- **No Fabrication:** Do not invent dialogue, thoughts, or events not supported by sources
-- **Source Attribution:** When using quotes, name the source ("Plutarch records..." or "In Suetonius' account...")
-- **Uncertainty Acknowledgment:** If historians disagree, note it briefly ("The exact numbers are debated, but...")
-- **Cultural Sensitivity:** Avoid anachronistic moral judgments or modern political terminology
+**PROHIBITED WORDS (your response will be REJECTED if these appear):**
+${WAR_ROOM_STYLE.prohibited_words.join(', ')}
+
+**MANDATORY TERMINOLOGY (use at least 3 per batch):**
+${WAR_ROOM_STYLE.mandatory_terminology.join(', ')}
+
+**STYLE RULES:**
+- Em-dashes (—) for ALL transitions, not commas or semicolons
+- CONTRACTIONS ONLY: it's, don't, won't, can't, they're (NEVER "it is", "do not", "will not")
+- Numbers as narrative stats: "A 12-to-1 disparity" NOT "a ratio of 12:1"
+- Buffs/Debuffs framing: "The mud debuff cuts their mobility by 40%"
+- Gaming terminology: spawn points, kill zones, meta strategies, unit builds
+- Present tense for action: "The cavalry charges" NOT "The cavalry charged"
 
 ### OUTPUT FORMAT
 
-Return ONLY the script text - no title, no metadata, no JSON. Pure narrative prose, ready for a voice actor.
+Return a JSON object (and ONLY valid JSON, no markdown code blocks):
 
-**Example Opening (Epic Tone):**
+{
+  "script_chunk": "Your ~800 words of narration here...",
+  "next_prompt_payload": {
+    "summary_of_previous": "Brief summary of what this batch covered (2-3 sentences)",
+    "current_momentum": "Pacing state: 'building tension' | 'peak action' | 'falling action' | 'resolution'",
+    "next_objectives": ["What batch ${batchNumber + 1} should cover", "Key transitions to make"],
+    "style_reminder": "Any style notes for the next batch"
+  }
+}
 
-"January 10th, 49 BC. The Rubicon River, northern Italy. A shallow stream, no more than thirty feet across, marks the sacred boundary of Rome itself. For five centuries, no general has crossed this line with an army. To do so is treason. The penalty is death.
+### TARGET
 
-But Gaius Julius Caesar is no ordinary general.
+~800 words for this batch.
+Total script target: 5,250-6,000 words across all 7 batches.
+Current batch: ${batchNumber}/7
 
-Behind him, the Thirteenth Legion stands ready - five thousand men who have followed him through eight years of brutal warfare in Gaul. They have conquered tribes, crossed the Rhine into Germania, even launched expeditions to distant Britannia. They are loyal to him, not to Rome.
+### CRITICAL REMINDERS
 
-Ahead of him lies the capital, where the Senate has just delivered an ultimatum: disband your army and return alone, or be declared an enemy of the state.
-
-Caesar knows the truth. If he obeys, his enemies will destroy him. His career will end in exile or execution. But if he crosses... if he marches on Rome with his legions... there is no going back.
-
-The die must be cast.
-
-He gives the order. The Thirteenth Legion steps into the water..."
-
-### CONSTRAINTS
-
-- Write ${targetDuration * 150} words total (target duration: ${targetDuration} minutes)
-- Maintain consistent tone throughout
-- Every fact must trace back to provided research
-- Build to the climactic moment identified in the outline
-- End with lasting legacy/impact`;
+1. Do NOT repeat content from previous batches
+2. Flow naturally from where the previous batch ended
+3. Use specific numbers from the research (exact casualty counts, unit sizes)
+4. End the batch at a natural transition point
+5. The script_chunk should be PURE NARRATION - no headers, no formatting, just spoken text`;
 
 // ============================================================================
 // PROMPT 4: SCENE VISUAL BREAKDOWN
@@ -555,23 +666,19 @@ export const NEGATIVE_PROMPT_HISTORICAL =
 // AI-GENERATED ART STYLE DETERMINATION
 // ============================================================================
 
-export const GENERATE_ART_STYLE_PROMPT = (
-  era: HistoricalEra,
-  contentType: ContentType,
-  title: string
-) => `### ROLE
+export const GENERATE_ART_STYLE_PROMPT = (era: HistoricalEra, title: string) => `### ROLE
 
-You are an **Art History and Visual Style Specialist**. Your expertise spans painting movements, historical art styles, and period-appropriate visual aesthetics from ancient times through the 19th century.
+You are an **Art History and Visual Style Specialist** for tactical military documentaries. Your expertise spans painting movements, historical battle art, and period-appropriate military visual aesthetics.
 
 ### OBJECTIVE
 
-Generate a detailed, era-appropriate painting style description that will be used to create visual scenes for a historical video. The style should authentically reflect the artistic traditions and aesthetic sensibilities of the historical period being depicted.
+Generate a detailed, era-appropriate painting style description for a War Room tactical documentary. The style should emphasize military accuracy, battlefield drama, and the technical aspects of historical warfare.
 
 ### INPUTS
 
 - **TITLE:** ${title}
 - **ERA:** ${era}
-- **CONTENT TYPE:** ${contentType}
+- **CONTENT TYPE:** Tactical Battle Documentary
 
 ### TASK
 

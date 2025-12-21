@@ -11,12 +11,6 @@ export type HistoricalEra =
   | 'Prussian'
   | 'Other';
 
-export type ContentType =
-  | 'Biography'
-  | 'Battle'
-  | 'Culture'
-  | 'Mythology';
-
 export type NarrativeTone =
   | 'Epic'
   | 'Documentary'
@@ -25,8 +19,7 @@ export type NarrativeTone =
 
 export interface HistoricalTopic {
   title: string;
-  era: HistoricalEra;
-  contentType: ContentType;
+  era?: HistoricalEra; // AI-inferred from title during research
   tone: NarrativeTone;
   created_at: Date;
   artStyle?: string; // AI-generated era-appropriate painting style
@@ -146,6 +139,11 @@ export interface SessionStore {
   scenes: Scene[];
   storyboardScenes: StoryboardScene[];
 
+  // War Room recursive generation state
+  tacticalResearch: TacticalResearch | null;
+  recursiveScript: RecursiveScript | null;
+  recursiveProgress: RecursiveGenerationProgress | null;
+
   // Workflow state
   isGenerating: boolean;
   errors: string[];
@@ -165,4 +163,153 @@ export interface SessionStore {
   addError: (error: string) => void;
   clearErrors: () => void;
   reset: () => void;
+
+  // War Room actions
+  setTacticalResearch: (research: TacticalResearch) => void;
+  setRecursiveScript: (script: RecursiveScript) => void;
+  setRecursiveProgress: (progress: RecursiveGenerationProgress) => void;
+}
+
+// ============================================================================
+// WAR ROOM TACTICAL DOCUMENTARY TYPES
+// ============================================================================
+
+// Recursive script state machine payload
+export interface RecursivePromptPayload {
+  summary_of_previous: string; // What was covered in prior chunks
+  current_momentum: string; // Pacing/energy state (e.g., "building tension", "peak action")
+  next_objectives: string[]; // What the next batch must cover
+  style_reminder: string; // Reinforce prohibited words, mandatory terms
+}
+
+// Single batch output from recursive generation
+export interface ScriptBatch {
+  batch_number: number; // 1-7
+  script_chunk: string; // ~800 words of spoken content
+  word_count: number;
+  next_prompt_payload: RecursivePromptPayload;
+  generated_at: Date;
+}
+
+// Tactical section for outline
+export interface TacticalSection {
+  title: string;
+  key_points: string[];
+  estimated_word_count: number; // Target ~500-700 words per section
+}
+
+// Master Tactical Outline (10 points)
+export interface TacticalOutline {
+  the_map_meta: TacticalSection; // Point 1: Terrain Analysis
+  faction_a_build: TacticalSection; // Point 2: Equipment/Stats
+  faction_b_build: TacticalSection; // Point 3: Counter-measures
+  opening_skirmish: TacticalSection; // Point 4: The Probing
+  the_critical_error: TacticalSection; // Point 5: The Spawn Trap
+  the_unit_collision: TacticalSection; // Point 6: The Grind
+  the_flanking_exploit: TacticalSection; // Point 7: The Finisher
+  the_rout: TacticalSection; // Point 8: The Kill Screen
+  aftermath_telemetry: TacticalSection; // Point 9: Total Casualties
+  historical_patch_notes: TacticalSection; // Point 10: Long-term Impact
+  generated_at: Date;
+}
+
+// Equipment data for unit analysis
+export interface EquipmentData {
+  primary_weapon: string;
+  weapon_length?: string; // E.g., "18-foot sarissa"
+  armor_type: string;
+  armor_material: string; // E.g., "Bronze", "Iron", "Leather"
+  shield?: string;
+}
+
+// Unit composition data
+export interface UnitData {
+  unit_type: string; // E.g., "Heavy Infantry", "Cavalry"
+  count: number; // Exact number
+  equipment: EquipmentData;
+  formation: string; // E.g., "Phalanx", "Wedge"
+  phalanx_depth?: number; // If applicable
+}
+
+// Faction data for tactical research
+export interface FactionData {
+  name: string;
+  commander: string;
+  unit_composition: UnitData[];
+  total_strength: number; // Exact count, not "thousands"
+  buffs: string[]; // E.g., "High ground advantage"
+  debuffs: string[]; // E.g., "Mud reducing mobility"
+}
+
+// Terrain analysis data
+export interface TerrainData {
+  location: string;
+  elevation: string; // E.g., "Valley floor, 200m below ridgeline"
+  terrain_type: string; // E.g., "Open plain", "Forested hills"
+  weather_conditions: string;
+  tactical_advantages: string[];
+  tactical_disadvantages: string[];
+}
+
+// Casualty data for aftermath telemetry
+export interface CasualtyData {
+  faction_a_casualties: number;
+  faction_b_casualties: number;
+  kill_ratio: string; // E.g., "12-to-1"
+  total_deaths: number;
+}
+
+// Timeline event for tactical research
+export interface TacticalTimelineEvent {
+  phase: string; // E.g., "Opening", "Main Collision", "Rout"
+  time_marker: string; // E.g., "Dawn", "Midday", "2 hours into battle"
+  event: string;
+  tactical_significance: string;
+}
+
+// Research telemetry from Perplexity (replaces HistoricalResearch)
+export interface TacticalResearch {
+  topic: string;
+  era: HistoricalEra;
+
+  // Raw telemetry data
+  factions: FactionData[];
+  terrain_analysis: TerrainData;
+  casualty_data: CasualtyData;
+  timeline: TacticalTimelineEvent[];
+
+  // Sources
+  primary_sources: string[];
+
+  generated_at: Date;
+}
+
+// Aggregated recursive script result
+export interface RecursiveScript {
+  hook: string; // 60-second hook (~150 words)
+  master_outline: TacticalOutline;
+  batches: ScriptBatch[];
+  full_script: string; // Concatenated final script
+  total_word_count: number;
+  topic: string;
+  era: HistoricalEra;
+  target_duration: number;
+  generated_at: Date;
+}
+
+// Generation progress tracking
+export interface RecursiveGenerationProgress {
+  phase: 'research' | 'hook' | 'outline' | 'batch' | 'complete' | 'error';
+  current_batch: number; // 0-7 (0 = not started, 7 = complete)
+  total_batches: number; // Always 7
+  current_word_count: number;
+  target_word_count: number; // 5250-6000 for 35 min
+  error?: string;
+}
+
+// Style constraints for validation
+export interface WarRoomStyleConstraints {
+  prohibited_words: string[];
+  mandatory_terminology: string[];
+  style_rules: string[];
 }

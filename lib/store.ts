@@ -9,6 +9,11 @@ const initialState = {
   script: null,
   scenes: [],
   storyboardScenes: [],
+  // War Room recursive state
+  tacticalResearch: null,
+  recursiveScript: null,
+  recursiveProgress: null,
+  // Workflow state
   isGenerating: false,
   errors: [],
   sceneGenerationProgress: 0,
@@ -50,4 +55,11 @@ export const useSessionStore = create<SessionStore>((set) => ({
   clearErrors: () => set({ errors: [] }),
 
   reset: () => set(initialState),
+
+  // War Room actions
+  setTacticalResearch: (research) => set({ tacticalResearch: research }),
+
+  setRecursiveScript: (script) => set({ recursiveScript: script }),
+
+  setRecursiveProgress: (progress) => set({ recursiveProgress: progress }),
 }));
