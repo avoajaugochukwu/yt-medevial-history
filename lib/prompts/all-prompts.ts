@@ -5,8 +5,10 @@
 import type {
   HistoricalEra,
   TacticalResearch,
-  TacticalOutline,
+  GamifiedWarOutline,
+  GamifiedWarSection,
   RecursivePromptPayload,
+  ScriptDuration,
 } from '@/lib/types';
 
 export const SYSTEM_PROMPT = `You are the War Room, a tactical documentary engine that analyzes historical battles with the precision of post-game analysis. You use gaming terminology to explain the mechanics of warfare - treating units as builds, terrain as map meta, and tactical decisions as exploits or errors. Your style is analytical, assertive, and gamified. You never use flowery language about "valor" or "heroism" - you discuss kill ratios, morale thresholds, and flank efficiency.`;
@@ -233,165 +235,252 @@ Return ONLY the hook text (~150 words). No JSON, no metadata, no formatting. Jus
 Roman heavy infantry faces a Carthaginian double-envelopment trap. The disparity: 86,000 Romans against 50,000 Carthaginians -- but Hannibal's positioned on the kill-optimal terrain. Rome's sending wave after wave into what they don't realize is a spawn trap -- the Carthaginian crescent formation isn't retreating, it's compressing. By the time the Roman commanders realize the flank-efficiency of Hannibal's cavalry, 70,000 of their men will be dead in a single afternoon. Let's look at the war room data.`;
 
 // ============================================================================
-// PROMPT 3: MASTER TACTICAL OUTLINE (10 POINTS)
+// PROMPT 3: GAMIFIED WAR MASTER OUTLINE (5 POINTS + 4-POINT ANALYSIS)
 // ============================================================================
 
-export const MASTER_OUTLINE_PROMPT = (research: TacticalResearch, hook: string) => `### ROLE
+// Word count targets by duration
+export const WORD_COUNT_TARGETS: Record<ScriptDuration, { total: number; perBatch: number }> = {
+  short: { total: 1500, perBatch: 300 }, // 8-12 minutes
+  medium: { total: 3000, perBatch: 600 }, // 20 minutes
+  long: { total: 5250, perBatch: 1050 }, // 35 minutes
+};
 
-You are a **Tactical Documentary Architect** creating a 10-point master outline for a 35-minute War Room analysis.
+export const MASTER_OUTLINE_PROMPT = (
+  research: TacticalResearch,
+  hook: string,
+  targetDuration: ScriptDuration = 'medium'
+) => {
+  const wordTargets = WORD_COUNT_TARGETS[targetDuration];
 
-### THE 10-POINT TACTICAL STRUCTURE
+  return `### ROLE
 
-1. **THE MAP META** - Terrain Analysis
-   How geography shapes the tactical options. Elevation buffs, chokepoint exploits, terrain debuffs.
+You are the **Lead War Room Architect** for a tactical documentary channel.
 
-2. **FACTION A BUILD** - Equipment/Stats
-   Unit composition, weapons, armor, formation doctrine. The "character build" of this army.
+### INPUT DATA
 
-3. **FACTION B BUILD** - Counter-measures
-   How the opposing force is configured. What counters what.
+**Topic:** ${research.topic}
+**Era:** ${research.era}
+**The Strategic Briefing:** Reference the tactical research data below.
+**The Hook:** DO NOT generate a new hook. The established opening (0:00–1:30) is:
 
-4. **OPENING SKIRMISH** - The Probing
-   Initial contact, testing enemy response, gathering intel.
+"${hook}"
 
-5. **THE CRITICAL ERROR** - The Spawn Trap
-   The decisive mistake that creates vulnerability. The exploit that will be punished.
+### TASK
 
-6. **THE UNIT COLLISION** - The Grind
-   Main engagement, attrition phase, morale threshold testing.
+Create a detailed, high-density Master Outline using the "Gamified War" framework.
 
-7. **THE FLANKING EXPLOIT** - The Finisher
-   The tactical move that breaks the stalemate and shifts kill ratio decisively.
+### THE "GAMIFIED WAR" ARC (5 POINTS)
 
-8. **THE ROUT** - The Kill Screen
-   Collapse, pursuit, the mathematics of fleeing units vs pursuing cavalry.
+1. **THE MATCHUP** - Define the "Win Condition" and the massive odds (e.g., 1 vs 10)
+2. **THE UNIT DEEP DIVE** - The specific weapon/soldier that changed the game
+3. **THE TACTICAL TURN** - The maneuver that trapped the enemy
+4. **THE KILL SCREEN** - Vivid description of the rout/destruction
+5. **THE AFTERMATH** - Final Casualty Stats and "Kill Ratios"
 
-9. **AFTERMATH TELEMETRY** - Total Casualties
-   Final numbers, prisoner counts, commander fates, the kill ratio summary.
+### STRUCTURE FOR EACH CHAPTER
 
-10. **HISTORICAL PATCH NOTES** - Long-term Impact
-    How this battle changed warfare, politics, or the meta of future conflicts.
+For EVERY section, you MUST define these 4 analytical points:
+
+1. **Stat Re-Hook**: A specific number, kill ratio, or troop count to re-engage the viewer's "strategy brain"
+   Example: "8,000 against 40,000—a 5-to-1 disparity"
+
+2. **Hollywood Myth**: The "Movie version" or common misconception of this moment
+   Example: "They say the knights charged blindly into the mud..."
+
+3. **Tactical Reality (The Meta)**: The factual explanation based on Unit Counter Framework. WHY did the "Math of War" work this way?
+   Example: "The French heavy armor acted as a debuff in the terrain, nerfing their stamina to zero before the first melee"
+
+4. **Total War Parallel**: A historical comparison or modern strategy game equivalent
+   Example: "Compare this defensive formation to the Battle of Cannae 1,000 years prior—the same 'Double Envelopment' logic applies"
+
+### THE MODULAR STRUCTURE
+
+**PHASE 1: THE BUILD & THE MATCHUP (Minutes 1:30–4:00)**
+- Goal: Deconstruct the "Units" — Equipment, training, morale stats, and the "Map" (Terrain)
+- Sections: THE MATCHUP + THE UNIT DEEP DIVE
+- Engagement Spike 1: Ask for a "Build" opinion in the comments
+  Example: "In this terrain, would you have prioritized Heavy Cavalry or Skirmishers? Let's argue about the meta in the comments."
+
+**PHASE 2: THE TACTICAL TURN & THE "CRITICAL ERROR" (Minutes 4:00–7:30)**
+- Goal: Identify the exact moment the battle was won or lost. The maneuver, the "spawn-trap," or the morale break
+- Section: THE TACTICAL TURN
+- Engagement Spike 2: Invite the audience to check out the tactical map breakdown on community tab
+
+**PHASE 3: THE KILL SCREEN & THE AFTERMATH (Minutes 7:30–10:00+)**
+- Goal: The "Smart Dad" context — Final Kill Ratios, territory/power shifts, and the 100-year forecast of how this battle "patched" history
+- Sections: THE KILL SCREEN + THE AFTERMATH
+- Final Command: A closing "Post-Game Report" that reinforces the channel's authority
 
 ### RESEARCH DATA
 
-Topic: ${research.topic}
-Era: ${research.era}
-
-Factions:
+**Factions:**
 ${JSON.stringify(research.factions, null, 2)}
 
-Terrain:
+**Terrain:**
 ${JSON.stringify(research.terrain_analysis, null, 2)}
 
-Casualties:
+**Casualties:**
 ${JSON.stringify(research.casualty_data, null, 2)}
 
-Timeline:
+**Timeline:**
 ${JSON.stringify(research.timeline, null, 2)}
-
-### HOOK (for continuity)
-${hook}
 
 ### OUTPUT FORMAT
 
 Return a JSON object (and ONLY valid JSON, no markdown code blocks):
 
 {
-  "the_map_meta": {
-    "title": "The Map Meta",
-    "key_points": ["Point 1", "Point 2", "Point 3"],
-    "estimated_word_count": 600
+  "the_matchup": {
+    "title": "The Matchup",
+    "key_points": ["Win condition statement", "Odds/disparity", "Why this seems impossible"],
+    "chapter_analysis": {
+      "stat_rehook": "The specific number that hooks the viewer",
+      "hollywood_myth": "The common misconception about this matchup",
+      "tactical_reality": "Why the 'underdog' had hidden advantages (or didn't)",
+      "total_war_parallel": "Historical or game comparison"
+    },
+    "engagement_spike": "Build opinion question for comments",
+    "visual_note": "Tactical Map Graphics or Oil Painting Visuals note",
+    "estimated_word_count": ${Math.round(wordTargets.perBatch * 0.9)}
   },
-  "faction_a_build": {
-    "title": "Faction A Build",
-    "key_points": ["Unit breakdown", "Weapon stats", "Formation doctrine"],
-    "estimated_word_count": 600
+  "the_unit_deep_dive": {
+    "title": "The Unit Deep Dive",
+    "key_points": ["The game-changing unit/weapon", "Why it countered the enemy", "Training/equipment specs"],
+    "chapter_analysis": {
+      "stat_rehook": "Specific weapon stat or kill efficiency",
+      "hollywood_myth": "Movie version of this unit/weapon",
+      "tactical_reality": "The actual mechanics of why it worked",
+      "total_war_parallel": "Similar unit counters in other battles/games"
+    },
+    "visual_note": "Oil Painting of the key unit in action",
+    "estimated_word_count": ${Math.round(wordTargets.perBatch * 1.1)}
   },
-  "faction_b_build": {
-    "title": "Faction B Build",
-    "key_points": ["Counter-composition", "Tactical approach"],
-    "estimated_word_count": 500
+  "the_tactical_turn": {
+    "title": "The Tactical Turn",
+    "key_points": ["The exact maneuver", "The critical error by the enemy", "The spawn-trap moment"],
+    "chapter_analysis": {
+      "stat_rehook": "Timing or positioning stat that made the difference",
+      "hollywood_myth": "The 'genius move' myth vs reality",
+      "tactical_reality": "The mathematical/positional exploit",
+      "total_war_parallel": "Famous similar maneuvers in history"
+    },
+    "engagement_spike": "Community tab reference for tactical map breakdown",
+    "visual_note": "Tactical Map Graphics required",
+    "estimated_word_count": ${Math.round(wordTargets.perBatch * 1.2)}
   },
-  "opening_skirmish": {
-    "title": "Opening Skirmish",
-    "key_points": ["Initial deployment", "Probing attacks"],
-    "estimated_word_count": 500
+  "the_kill_screen": {
+    "title": "The Kill Screen",
+    "key_points": ["The moment of collapse", "Pursuit mechanics", "The mathematics of the rout"],
+    "chapter_analysis": {
+      "stat_rehook": "Kill rate during the rout phase",
+      "hollywood_myth": "The 'glorious last stand' myth",
+      "tactical_reality": "Why fleeing units die at 10x the rate",
+      "total_war_parallel": "Similar rout dynamics in other battles"
+    },
+    "visual_note": "Oil Painting of the rout/destruction",
+    "estimated_word_count": ${Math.round(wordTargets.perBatch * 1.0)}
   },
-  "the_critical_error": {
-    "title": "The Critical Error",
-    "key_points": ["The mistake", "Why it was exploitable"],
-    "estimated_word_count": 700
+  "the_aftermath": {
+    "title": "The Aftermath",
+    "key_points": ["Final casualty count", "Kill ratio summary", "100-year impact"],
+    "chapter_analysis": {
+      "stat_rehook": "Final kill ratio and total casualties",
+      "hollywood_myth": "How history 'remembered' this battle vs reality",
+      "tactical_reality": "What actually changed in warfare/politics",
+      "total_war_parallel": "How this 'patched' the meta of future wars"
+    },
+    "visual_note": "Oil Painting or Map showing territorial aftermath",
+    "estimated_word_count": ${Math.round(wordTargets.perBatch * 0.8)}
   },
-  "the_unit_collision": {
-    "title": "The Unit Collision",
-    "key_points": ["Main engagement mechanics", "Attrition"],
-    "estimated_word_count": 700
-  },
-  "the_flanking_exploit": {
-    "title": "The Flanking Exploit",
-    "key_points": ["The winning move", "Kill ratio shift"],
-    "estimated_word_count": 600
-  },
-  "the_rout": {
-    "title": "The Rout",
-    "key_points": ["Collapse mechanics", "Pursuit phase"],
-    "estimated_word_count": 500
-  },
-  "aftermath_telemetry": {
-    "title": "Aftermath Telemetry",
-    "key_points": ["Final casualty numbers", "Kill ratio summary"],
-    "estimated_word_count": 400
-  },
-  "historical_patch_notes": {
-    "title": "Historical Patch Notes",
-    "key_points": ["Long-term tactical impact", "How warfare changed"],
-    "estimated_word_count": 400
-  },
+  "target_duration": "${targetDuration}",
   "generated_at": "${new Date().toISOString()}"
 }
 
 ### TARGET WORD COUNT
 
-Total script target: 5,250-6,000 words (35 minutes at 150 words/min)
-Distribute across 10 sections, with more words for critical moments (Error, Collision, Exploit)`;
+Duration: ${targetDuration.toUpperCase()}
+Total script target: ~${wordTargets.total} words
+Per section average: ~${wordTargets.perBatch} words
+
+### OUTPUT REQUIREMENTS
+
+- Provide logical outline ONLY (bullet points for key_points)
+- Do NOT write the full script yet
+- Note specifically where "Tactical Map Graphics" or "Oil Painting Visuals" are required
+- Every chapter_analysis field is REQUIRED — do not skip any`;
+};
+
+// Legacy export for backwards compatibility
+export const MASTER_OUTLINE_PROMPT_LEGACY = MASTER_OUTLINE_PROMPT;
 
 // ============================================================================
 // PROMPT 4: RECURSIVE BATCH GENERATOR (800 WORDS PER BATCH)
 // ============================================================================
 
-// Helper function to get batch assignment from outline
+// Helper function to get batch assignment from outline (5 batches for Gamified War)
 export const getBatchAssignment = (
   batchNumber: number,
-  outline: TacticalOutline
+  outline: GamifiedWarOutline
 ): string => {
-  const assignments: Record<number, (keyof Omit<TacticalOutline, 'generated_at'>)[]> = {
-    1: ['the_map_meta', 'faction_a_build'],
-    2: ['faction_b_build', 'opening_skirmish'],
-    3: ['the_critical_error'],
-    4: ['the_unit_collision'],
-    5: ['the_flanking_exploit'],
-    6: ['the_rout'],
-    7: ['aftermath_telemetry', 'historical_patch_notes'],
+  // Map each batch to a single Gamified War section
+  const assignments: Record<number, keyof Omit<GamifiedWarOutline, 'generated_at' | 'target_duration'>> = {
+    1: 'the_matchup',
+    2: 'the_unit_deep_dive',
+    3: 'the_tactical_turn',
+    4: 'the_kill_screen',
+    5: 'the_aftermath',
   };
 
-  const sections = assignments[batchNumber] || [];
-  return sections
-    .map((key) => {
-      const section = outline[key];
-      return `**${section.title}:** ${section.key_points.join('; ')}`;
-    })
-    .join('\n');
+  const sectionKey = assignments[batchNumber];
+  if (!sectionKey) return '';
+
+  const section = outline[sectionKey] as GamifiedWarSection;
+  const analysis = section.chapter_analysis;
+
+  return `**${section.title}**
+Key Points: ${section.key_points.join('; ')}
+
+4-POINT ANALYSIS TO WEAVE IN:
+- Stat Re-Hook: ${analysis.stat_rehook}
+- Hollywood Myth: ${analysis.hollywood_myth || 'N/A'}
+- Tactical Reality (The Meta): ${analysis.tactical_reality}
+- Total War Parallel: ${analysis.total_war_parallel || 'N/A'}
+
+${section.engagement_spike ? `ENGAGEMENT SPIKE: ${section.engagement_spike}` : ''}
+${section.visual_note ? `VISUAL NOTE: ${section.visual_note}` : ''}`;
+};
+
+// Get phase info for batch
+export const getBatchPhase = (batchNumber: number): { phase: number; name: string; goal: string } => {
+  const phases: Record<number, { phase: number; name: string; goal: string }> = {
+    1: { phase: 1, name: 'BUILD & MATCHUP', goal: 'Deconstruct the Units — Equipment, training, morale stats, and the Map' },
+    2: { phase: 1, name: 'BUILD & MATCHUP', goal: 'Deep dive into the game-changing unit/weapon' },
+    3: { phase: 2, name: 'TACTICAL TURN', goal: 'Identify the exact moment the battle was won or lost' },
+    4: { phase: 3, name: 'KILL SCREEN & AFTERMATH', goal: 'Vivid description of the rout/destruction' },
+    5: { phase: 3, name: 'KILL SCREEN & AFTERMATH', goal: 'Final Kill Ratios, territory/power, 100-year forecast' },
+  };
+  return phases[batchNumber] || { phase: 0, name: 'UNKNOWN', goal: '' };
 };
 
 export const RECURSIVE_BATCH_PROMPT = (
   batchNumber: number,
-  outline: TacticalOutline,
+  outline: GamifiedWarOutline,
   research: TacticalResearch,
   previousPayload: RecursivePromptPayload | null,
   _previousChunks: string[] // Reserved for future context window management
-) => `### ROLE
+) => {
+  const phaseInfo = getBatchPhase(batchNumber);
+  const wordTargets = WORD_COUNT_TARGETS[outline.target_duration || 'medium'];
+  const totalBatches = 5;
 
-You are a **War Room Narrator** generating batch ${batchNumber} of 7 for a tactical documentary.
+  return `### ROLE
+
+You are a **War Room Narrator** generating batch ${batchNumber} of ${totalBatches} for a tactical documentary.
+
+### CURRENT PHASE
+
+**PHASE ${phaseInfo.phase}: ${phaseInfo.name}**
+Goal: ${phaseInfo.goal}
 
 ### BATCH ASSIGNMENT
 
@@ -413,6 +502,14 @@ ${
     : 'This is the first batch. Start immediately after the hook - do NOT restate the hook.'
 }
 
+### 4-POINT ANALYSIS INTEGRATION
+
+You MUST weave in the 4-point analysis for this section:
+1. **Stat Re-Hook** - Open with a compelling number/ratio to grab attention
+2. **Hollywood Myth** - Address and debunk the common misconception
+3. **Tactical Reality** - Explain the actual "meta" - why the math of war worked this way
+4. **Total War Parallel** - Draw comparison to other historical battles or strategy games
+
 ### RESEARCH DATA
 
 Topic: ${research.topic}
@@ -429,10 +526,6 @@ ${JSON.stringify(research.casualty_data, null, 2)}
 
 Timeline:
 ${JSON.stringify(research.timeline, null, 2)}
-
-### MASTER OUTLINE REFERENCE
-
-${JSON.stringify(outline, null, 2)}
 
 ### STYLE CONSTRAINTS (CRITICAL - ENFORCED)
 
@@ -455,7 +548,7 @@ ${WAR_ROOM_STYLE.mandatory_terminology.join(', ')}
 Return a JSON object (and ONLY valid JSON, no markdown code blocks):
 
 {
-  "script_chunk": "Your ~800 words of narration here...",
+  "script_chunk": "Your ~${wordTargets.perBatch} words of narration here...",
   "next_prompt_payload": {
     "summary_of_previous": "Brief summary of what this batch covered (2-3 sentences)",
     "current_momentum": "Pacing state: 'building tension' | 'peak action' | 'falling action' | 'resolution'",
@@ -466,17 +559,21 @@ Return a JSON object (and ONLY valid JSON, no markdown code blocks):
 
 ### TARGET
 
-~800 words for this batch.
-Total script target: 5,250-6,000 words across all 7 batches.
-Current batch: ${batchNumber}/7
+~${wordTargets.perBatch} words for this batch.
+Total script target: ~${wordTargets.total} words across all ${totalBatches} batches.
+Current batch: ${batchNumber}/${totalBatches}
 
 ### CRITICAL REMINDERS
 
 1. Do NOT repeat content from previous batches
 2. Flow naturally from where the previous batch ended
 3. Use specific numbers from the research (exact casualty counts, unit sizes)
-4. End the batch at a natural transition point
-5. The script_chunk should be PURE NARRATION - no headers, no formatting, just spoken text`;
+4. WEAVE IN all 4 analytical points naturally - don't list them, integrate them into the narrative
+5. Include engagement spike if one is assigned for this section
+6. End the batch at a natural transition point
+7. The script_chunk should be PURE NARRATION - no headers, no formatting, just spoken text
+${batchNumber === totalBatches ? '8. This is the FINAL batch - include a "Post-Game Report" closing that reinforces the channel authority' : ''}`;
+};
 
 // ============================================================================
 // PROMPT 4: SCENE VISUAL BREAKDOWN
@@ -780,3 +877,147 @@ NEGATIVE PROMPTS (MAPS - AVOID):
 
 export const NEGATIVE_PROMPT_MAPS =
   "satellite imagery, modern map, GPS, Google Maps, digital cartography, contemporary borders, modern countries, neon colors, sans-serif fonts, photographs, 3D terrain, realistic rendering, highways, airports, modern infrastructure, minimalist, clean design, vector graphics, web map, topographic precision, modern symbols, bright colors, sharp edges, sterile, computational, balance sheet, comparison map, before after, side by side, infographic, chart, graph, data visualization, statistics, numbers overlay, text overlay, figures on map, people on map, human figures, soldiers on map";
+
+// ============================================================================
+// SCRIPT QUALITY OPTIMIZATION - AUDIT & POLISH PROMPTS
+// ============================================================================
+
+/**
+ * SCRIPT_AUDIT_PROMPT
+ * Uses OpenAI (GPT-4o) to analyze a script for repetition, structural loops,
+ * and overused jargon. Returns a structured audit report.
+ */
+export const SCRIPT_AUDIT_PROMPT = (script: string): string => `### ROLE
+
+You are a **Script Editor and Logic Auditor** for tactical military documentaries. Your job is to identify quality issues that make AI-generated scripts feel repetitive or "loopy."
+
+### OBJECTIVE
+
+Analyze the script and generate a detailed audit report identifying:
+1. Redundant statistics (same numbers repeated)
+2. Narrative loops (re-introductions of already-established topics)
+3. Overused jargon and vocabulary fatigue
+4. Structural issues that make the script feel circular
+
+### SCRIPT TO ANALYZE
+
+<script>
+${script}
+</script>
+
+### AUDIT REQUIREMENTS
+
+Provide a structured report with the following sections:
+
+**1. REDUNDANT STATISTICS**
+- List specific data points (troop counts, dates, casualty figures, kill ratios) that appear more than twice
+- Include the EXACT phrases and count how many times each appears
+- Example: "449,000 troops" - mentioned 4 times (lines 12, 45, 78, 112)
+
+**2. NARRATIVE LOOPS**
+- Identify "reset" points where the script loops back to re-introduce topics that were already established
+- Note sections that re-explain concepts instead of building on prior knowledge
+- Flag any instances where the same event/fact is introduced "fresh" multiple times
+- Example: "The narrative re-introduces Hannibal's strategy in paragraph 5 despite establishing it in paragraph 2"
+
+**3. OVERUSED JARGON**
+- List terms and phrases that appear excessively (especially gaming terms like "meta", "debuff", "spawn", "kill ratio")
+- Include count for each overused term (threshold: more than 3 uses per 1000 words is overuse)
+- Note any "AI-isms" - robotic phrases, formulaic transitions, or repetitive sentence structures
+- Example: "debuff" appears 8 times, "the meta" appears 6 times
+
+**4. STRUCTURAL ISSUES**
+- Note any circular arguments or repetitive paragraph structures
+- Identify sections that could be consolidated
+- Flag any "summary" paragraphs that redundantly recap what was just said
+- Note transitions that feel formulaic or repetitive
+
+### OUTPUT FORMAT
+
+Format your response as a clear, actionable report. Be specific with line references or paragraph numbers when possible. The report will be used by another AI to rewrite the script, so be precise and thorough.
+
+### CRITICAL INSTRUCTION
+
+Focus on ACTIONABLE issues. Don't just say "there's repetition" - identify EXACTLY what's repeated and WHERE. The goal is to provide a checklist that can guide a complete rewrite.`;
+
+/**
+ * SCRIPT_POLISH_PROMPT
+ * Uses Claude (Sonnet) to rewrite the script based on the audit report,
+ * producing a linear, professional narrative without repetition.
+ */
+export const SCRIPT_POLISH_PROMPT = (
+  originalScript: string,
+  auditReport: string,
+  targetDuration: number
+): string => `### ROLE
+
+You are a **Master Narrative Stylist** for tactical military documentaries. Your job is to rewrite scripts to be LINEAR, PROFESSIONAL, and free of repetition.
+
+### OBJECTIVE
+
+Rewrite the script to fix ALL issues identified in the audit report while maintaining the "War Room" tactical documentary tone.
+
+### ORIGINAL SCRIPT
+
+<original_script>
+${originalScript}
+</original_script>
+
+### AUDIT REPORT (Issues to Fix)
+
+<audit_report>
+${auditReport}
+</audit_report>
+
+### TARGET PARAMETERS
+
+- Target duration: ${targetDuration} minutes
+- Target word count: ~${targetDuration * 150} words (150 words/minute speaking rate)
+- Maintain word count within ±10% of target
+
+### REWRITING RULES (CRITICAL)
+
+**1. FACTS ONCE, THEN REFERENCE**
+- Establish statistics and facts on their FIRST mention with full context
+- On subsequent mentions, reference them as established knowledge
+- BAD: "The 449,000 troops... Later, the 449,000 troops..."
+- GOOD: "449,000 troops assembled... those assembled forces... this massive army..."
+
+**2. LINEAR PROGRESSION**
+- Each paragraph MUST advance the narrative forward
+- NEVER circle back to re-introduce topics already established
+- If referencing something mentioned before, use "as we established" or simply assume the viewer remembers
+
+**3. VOCABULARY VARIETY**
+- Replace overused jargon with synonyms or fresh phrasing
+- If "debuff" appears 8 times, use alternatives: "handicap", "disadvantage", "penalty", "weakness"
+- Maintain gaming terminology but don't overuse any single term
+
+**4. ELIMINATE AI-ISMS**
+- Remove robotic transitions ("Furthermore", "Additionally", "In conclusion")
+- Cut redundant summary paragraphs that recap what was just said
+- Replace formulaic structures with natural, varied prose
+- Use em-dashes (—) for dramatic pauses and transitions
+
+**5. PRESERVE KEY CONTENT**
+- Keep ALL important statistics, facts, and narrative beats
+- Don't remove content - reorganize and deduplicate it
+- Maintain the 5-section Gamified War structure (Matchup, Unit Deep Dive, Tactical Turn, Kill Screen, Aftermath)
+
+### STYLE CONSTRAINTS
+
+**PROHIBITED WORDS (DO NOT USE):**
+${WAR_ROOM_STYLE.prohibited_words.join(', ')}
+
+**USE THESE STYLE ELEMENTS:**
+- Contractions (it's, don't, won't, can't)
+- Em-dashes for dramatic effect
+- Gaming/tactical terminology (varied, not repetitive)
+- Present tense for action sequences
+- Specific numbers over vague terms
+
+### OUTPUT FORMAT
+
+Return ONLY the rewritten script. No preamble, no commentary, no explanations. Just the polished narrative text ready for voice-over.
+
+The script should flow naturally, feel professionally written, and be completely free of the issues identified in the audit report.`;

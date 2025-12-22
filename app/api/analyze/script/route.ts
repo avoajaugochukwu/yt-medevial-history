@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { getAnthropicClient } from '@/lib/ai/anthropic';
+import { getOpenAIClient } from '@/lib/ai/openai';
 import { SYSTEM_PROMPT, SCENE_BREAKDOWN_PROMPT } from '@/lib/prompts/all-prompts';
 import { SCENE_DURATION_SECONDS } from '@/lib/config/development';
 
@@ -26,23 +26,25 @@ export async function POST(request: NextRequest) {
     console.log(`[Scene Analysis] Analyzing script (${script.length} characters, ${wordCount} words, ~${Math.round(durationSeconds / 60)} minutes)`);
     console.log(`[Scene Analysis] Target scene count: ${targetSceneCount} (${durationSeconds}s / ${SCENE_DURATION_SECONDS}s per scene)`);
 
-    const client = getAnthropicClient();
+    const client = getOpenAIClient();
     const prompt = SCENE_BREAKDOWN_PROMPT(script, targetSceneCount);
 
-    // Cap max_tokens at 32000 to accommodate large scene counts
-    // Sonnet 4 supports up to 64K output tokens
-    // Formula: 350 tokens per scene + buffer (e.g., 83 scenes × 350 = 29,050 tokens)
-    const maxTokens = Math.min(32000, Math.max(4000, targetSceneCount * 350));
+    // Cap max_tokens at 16000 for GPT-4o
+    const maxTokens = Math.min(16000, Math.max(4000, targetSceneCount * 350));
 
-    // Use Claude Sonnet 4 with streaming for long scene generation
+    // Use GPT-4o with streaming for long scene generation
     console.log(`[Scene Analysis] Starting streaming generation with max_tokens: ${maxTokens}`);
 
-    const stream = await client.messages.stream({
-      model: 'claude-sonnet-4-20250514',
+    const stream = await client.chat.completions.create({
+      model: 'gpt-4o',
       max_tokens: maxTokens,
       temperature: 0.7,
-      system: SYSTEM_PROMPT,
+      stream: true,
       messages: [
+        {
+          role: 'system',
+          content: SYSTEM_PROMPT,
+        },
         {
           role: 'user',
           content: prompt,
@@ -58,13 +60,14 @@ export async function POST(request: NextRequest) {
       async start(controller) {
         try {
           for await (const chunk of stream) {
-            if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
-              accumulatedText += chunk.delta.text;
+            const content = chunk.choices[0]?.delta?.content;
+            if (content) {
+              accumulatedText += content;
 
               // Send progress update
               const progressData = JSON.stringify({
                 type: 'progress',
-                text: chunk.delta.text,
+                text: content,
               }) + '\n';
               controller.enqueue(encoder.encode(progressData));
             }
@@ -117,7 +120,7 @@ export async function POST(request: NextRequest) {
               script_word_count: wordCount,
               estimated_duration_seconds: durationSeconds,
               average_snippet_length: Math.round(
-                scenes.reduce((sum, s) => sum + s.script_snippet.length, 0) / scenes.length
+                scenes.reduce((sum: number, s: { script_snippet: string }) => sum + s.script_snippet.length, 0) / scenes.length
               ),
             },
           }) + '\n';

@@ -6,13 +6,15 @@ import {
   MASTER_OUTLINE_PROMPT,
   RECURSIVE_BATCH_PROMPT,
   WAR_ROOM_STYLE,
+  WORD_COUNT_TARGETS,
 } from '@/lib/prompts/all-prompts';
 import type {
   TacticalResearch,
-  TacticalOutline,
+  GamifiedWarOutline,
   ScriptBatch,
   RecursiveScript,
   RecursivePromptPayload,
+  ScriptDuration,
 } from '@/lib/types';
 
 // Use Node.js runtime for longer timeout (recursive generation takes time)
@@ -22,10 +24,19 @@ export const maxDuration = 300; // 5 minutes for full recursive generation
 interface RecursiveScriptRequest {
   title: string;
   research: string; // JSON stringified TacticalResearch
-  targetDuration: number; // Should be ~35 for War Room
+  targetDuration: number; // Minutes (8-12, 20, or 35)
+  scriptDuration?: ScriptDuration; // 'short' | 'medium' | 'long'
 }
 
-const TOTAL_BATCHES = 7;
+// 5 batches for Gamified War (one per section)
+const TOTAL_BATCHES = 5;
+
+// Convert numeric duration to ScriptDuration type
+const getScriptDuration = (minutes: number): ScriptDuration => {
+  if (minutes <= 12) return 'short';
+  if (minutes <= 25) return 'medium';
+  return 'long';
+};
 
 /**
  * POST /api/generate/final-script
@@ -58,8 +69,12 @@ export async function POST(request: NextRequest) {
     // Era is now inferred from research data
     const era = research.era;
 
+    // Determine script duration from numeric target
+    const scriptDuration: ScriptDuration = body.scriptDuration || getScriptDuration(targetDuration);
+    const wordTargets = WORD_COUNT_TARGETS[scriptDuration];
+
     console.log(
-      `[Recursive Script] Starting generation for: "${title}" (${era}, ${targetDuration} minutes)`
+      `[Recursive Script] Starting generation for: "${title}" (${era}, ${targetDuration} minutes, ${scriptDuration} format)`
     );
 
     // ========================================================================
@@ -77,19 +92,19 @@ export async function POST(request: NextRequest) {
     console.log(`[Recursive Script] Hook generated: ${countWords(hook)} words`);
 
     // ========================================================================
-    // PHASE 2: Generate Master Tactical Outline (10 points)
+    // PHASE 2: Generate Gamified War Outline (5 points with 4-point analysis)
     // ========================================================================
-    console.log('[Recursive Script] Phase 2: Generating master outline...');
+    console.log('[Recursive Script] Phase 2: Generating Gamified War outline...');
 
-    const outlinePrompt = MASTER_OUTLINE_PROMPT(research, hook);
-    const outlineResponse = await generateWithClaude(outlinePrompt, SYSTEM_PROMPT, 0.7, 4000);
+    const outlinePrompt = MASTER_OUTLINE_PROMPT(research, hook, scriptDuration);
+    const outlineResponse = await generateWithClaude(outlinePrompt, SYSTEM_PROMPT, 0.7, 6000);
 
     if (!outlineResponse || outlineResponse.trim().length === 0) {
       throw new Error('Failed to generate outline');
     }
 
     // Parse the outline JSON
-    let outline: TacticalOutline;
+    let outline: GamifiedWarOutline;
     try {
       const cleanedOutline = outlineResponse
         .replace(/```json\n?/g, '')
@@ -102,21 +117,25 @@ export async function POST(request: NextRequest) {
         outline = JSON.parse(cleanedOutline);
       }
       outline.generated_at = new Date();
+      outline.target_duration = scriptDuration;
     } catch (parseError) {
       console.error('[Recursive Script] Outline parse error:', parseError);
-      throw new Error('Failed to parse tactical outline');
+      throw new Error('Failed to parse Gamified War outline');
     }
 
-    console.log('[Recursive Script] Master outline generated with 10 tactical points');
+    console.log('[Recursive Script] Gamified War outline generated with 5 sections + 4-point analysis');
 
     // ========================================================================
-    // PHASE 3: Recursive Batch Generation (7 batches of ~800 words)
+    // PHASE 3: Recursive Batch Generation (5 batches - one per Gamified War section)
     // ========================================================================
     console.log('[Recursive Script] Phase 3: Starting recursive batch generation...');
 
     const batches: ScriptBatch[] = [];
     let previousPayload: RecursivePromptPayload | null = null;
     const previousChunks: string[] = [];
+
+    // Calculate max tokens based on word target (rough estimate: 1.3 tokens per word)
+    const maxBatchTokens = Math.round(wordTargets.perBatch * 1.5) + 500;
 
     for (let batchNumber = 1; batchNumber <= TOTAL_BATCHES; batchNumber++) {
       console.log(`[Recursive Script] Generating batch ${batchNumber}/${TOTAL_BATCHES}...`);
@@ -129,7 +148,7 @@ export async function POST(request: NextRequest) {
         previousChunks
       );
 
-      const batchResponse = await generateWithClaude(batchPrompt, SYSTEM_PROMPT, 0.8, 2500);
+      const batchResponse = await generateWithClaude(batchPrompt, SYSTEM_PROMPT, 0.8, maxBatchTokens);
 
       if (!batchResponse || batchResponse.trim().length === 0) {
         throw new Error(`Failed to generate batch ${batchNumber}`);
@@ -205,7 +224,7 @@ export async function POST(request: NextRequest) {
     };
 
     console.log(
-      `[Recursive Script] Complete! Total: ${totalWordCount} words (target: ${targetDuration * 150})`
+      `[Recursive Script] Complete! Total: ${totalWordCount} words (target: ${wordTargets.total})`
     );
 
     return NextResponse.json({
@@ -215,6 +234,8 @@ export async function POST(request: NextRequest) {
         total_word_count: totalWordCount,
         estimated_duration_minutes: Math.round((totalWordCount / 150) * 10) / 10,
         batch_count: TOTAL_BATCHES,
+        script_duration: scriptDuration,
+        target_word_count: wordTargets.total,
         style_violations: styleViolations,
       },
     });

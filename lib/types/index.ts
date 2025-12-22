@@ -191,27 +191,47 @@ export interface ScriptBatch {
   generated_at: Date;
 }
 
-// Tactical section for outline
-export interface TacticalSection {
-  title: string;
-  key_points: string[];
-  estimated_word_count: number; // Target ~500-700 words per section
+// Target duration options for script generation
+export type ScriptDuration = 'short' | 'medium' | 'long'; // 8-12 min, 20 min, 35 min
+
+// 4-Point analytical framework for each chapter
+export interface ChapterAnalysis {
+  stat_rehook: string; // Number/ratio to re-engage viewer's "strategy brain"
+  hollywood_myth?: string; // The "movie version" or common misconception
+  tactical_reality: string; // The Meta - factual explanation via Unit Counter Framework
+  total_war_parallel?: string; // Historical comparison or strategy game equivalent
 }
 
-// Master Tactical Outline (10 points)
-export interface TacticalOutline {
-  the_map_meta: TacticalSection; // Point 1: Terrain Analysis
-  faction_a_build: TacticalSection; // Point 2: Equipment/Stats
-  faction_b_build: TacticalSection; // Point 3: Counter-measures
-  opening_skirmish: TacticalSection; // Point 4: The Probing
-  the_critical_error: TacticalSection; // Point 5: The Spawn Trap
-  the_unit_collision: TacticalSection; // Point 6: The Grind
-  the_flanking_exploit: TacticalSection; // Point 7: The Finisher
-  the_rout: TacticalSection; // Point 8: The Kill Screen
-  aftermath_telemetry: TacticalSection; // Point 9: Total Casualties
-  historical_patch_notes: TacticalSection; // Point 10: Long-term Impact
+// Enhanced section for Gamified War outline
+export interface GamifiedWarSection {
+  title: string;
+  key_points: string[];
+  chapter_analysis: ChapterAnalysis;
+  engagement_spike?: string; // Comment prompt for viewer engagement
+  visual_note?: string; // Note for "Tactical Map Graphics" or "Oil Painting Visuals"
+  estimated_word_count: number;
+}
+
+// Gamified War Outline (5 points with 3-phase timing)
+export interface GamifiedWarOutline {
+  // Phase 1: Build & Matchup (1:30-4:00 for short, scales with duration)
+  the_matchup: GamifiedWarSection; // Win Condition, odds, "1 vs 10" disparity
+  the_unit_deep_dive: GamifiedWarSection; // The specific weapon/soldier that changed the game
+
+  // Phase 2: Tactical Turn (4:00-7:30 for short)
+  the_tactical_turn: GamifiedWarSection; // The maneuver/exploit that trapped the enemy
+
+  // Phase 3: Kill Screen & Aftermath (7:30-10:00+ for short)
+  the_kill_screen: GamifiedWarSection; // Vivid rout/destruction description
+  the_aftermath: GamifiedWarSection; // Final casualty stats, kill ratios, "patch notes"
+
+  // Meta
+  target_duration: ScriptDuration;
   generated_at: Date;
 }
+
+// Legacy type alias for backwards compatibility during migration
+export type TacticalOutline = GamifiedWarOutline;
 
 // Equipment data for unit analysis
 export interface EquipmentData {
@@ -295,15 +315,20 @@ export interface RecursiveScript {
   era: HistoricalEra;
   target_duration: number;
   generated_at: Date;
+
+  // Polishing step results (optional - populated after audit+polish workflow)
+  polished_content?: string; // Rewritten script after quality optimization
+  polished_word_count?: number; // Word count of polished script
+  audit_report?: string; // Raw audit report from OpenAI analysis
 }
 
 // Generation progress tracking
 export interface RecursiveGenerationProgress {
   phase: 'research' | 'hook' | 'outline' | 'batch' | 'complete' | 'error';
-  current_batch: number; // 0-7 (0 = not started, 7 = complete)
-  total_batches: number; // Always 7
+  current_batch: number; // 0-5 (0 = not started, 5 = complete)
+  total_batches: number; // Always 5 (one per Gamified War section)
   current_word_count: number;
-  target_word_count: number; // 5250-6000 for 35 min
+  target_word_count: number; // Varies by duration: 1500 (short), 3000 (medium), 5250 (long)
   error?: string;
 }
 

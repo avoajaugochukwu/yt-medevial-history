@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAnthropicClient } from '@/lib/ai/anthropic';
+import { getOpenAIClient } from '@/lib/ai/openai';
 import { SYSTEM_PROMPT, GENERATE_ART_STYLE_PROMPT } from '@/lib/prompts/all-prompts';
 import type { HistoricalEra } from '@/lib/types';
 
@@ -15,7 +15,7 @@ interface ArtStyleRequest {
  * POST /api/generate/art-style
  *
  * AI-Generated Art Style Determination for Tactical Documentaries
- * Uses Claude to analyze the historical era and generate a military/battle-appropriate painting style
+ * Uses OpenAI to analyze the historical era and generate a military/battle-appropriate painting style
  */
 export async function POST(request: NextRequest) {
   try {
@@ -33,15 +33,18 @@ export async function POST(request: NextRequest) {
 
     console.log(`[Art Style] Generating tactical art style for: "${title}" (${era})`);
 
-    const client = getAnthropicClient();
+    const client = getOpenAIClient();
     const prompt = GENERATE_ART_STYLE_PROMPT(era, title);
 
-    const response = await client.messages.create({
-      model: 'claude-haiku-3-5-20241022', // Using Haiku for speed and cost efficiency
+    const response = await client.chat.completions.create({
+      model: 'gpt-4o-mini',
       max_tokens: 1000,
-      temperature: 0.8, // Higher temperature for creative style generation
-      system: SYSTEM_PROMPT,
+      temperature: 0.8,
       messages: [
+        {
+          role: 'system',
+          content: SYSTEM_PROMPT,
+        },
         {
           role: 'user',
           content: prompt,
@@ -49,12 +52,12 @@ export async function POST(request: NextRequest) {
       ],
     });
 
-    const content = response.content[0];
-    if (content.type !== 'text') {
-      throw new Error('Unexpected response type from Claude');
+    const content = response.choices[0]?.message?.content;
+    if (!content) {
+      throw new Error('Unexpected empty response from OpenAI');
     }
 
-    const artStyle = content.text.trim();
+    const artStyle = content.trim();
 
     console.log(`[Art Style] Generated tactical art style (${artStyle.length} chars)`);
     console.log(`[Art Style] Preview: ${artStyle.substring(0, 150)}...`);

@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Sparkles, Copy, Check, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
 import toast from 'react-hot-toast';
-import type { TacticalResearch, RecursiveScript, TacticalOutline } from '@/lib/types';
+import type { TacticalResearch, RecursiveScript, GamifiedWarSection } from '@/lib/types';
 import { useSessionStore } from '@/lib/store';
 import { useRouter } from 'next/navigation';
 
@@ -33,15 +33,15 @@ export default function WarRoomScriptingPage() {
   const [steps, setSteps] = useState<Step[]>([
     { number: 1, label: 'Extracting Tactical Telemetry', status: 'pending' },
     { number: 2, label: 'Generating Hook', status: 'pending' },
-    { number: 3, label: 'Building Master Outline', status: 'pending' },
-    { number: 4, label: 'Generating Batch 1/7 (Map Meta + Faction A)', status: 'pending' },
-    { number: 5, label: 'Generating Batch 2/7 (Faction B + Opening)', status: 'pending' },
-    { number: 6, label: 'Generating Batch 3/7 (Critical Error)', status: 'pending' },
-    { number: 7, label: 'Generating Batch 4/7 (Unit Collision)', status: 'pending' },
-    { number: 8, label: 'Generating Batch 5/7 (Flanking Exploit)', status: 'pending' },
-    { number: 9, label: 'Generating Batch 6/7 (The Rout)', status: 'pending' },
-    { number: 10, label: 'Generating Batch 7/7 (Aftermath + Patch Notes)', status: 'pending' },
-    { number: 11, label: 'Validating Style Compliance', status: 'pending' },
+    { number: 3, label: 'Building Gamified War Outline', status: 'pending' },
+    { number: 4, label: 'Generating Batch 1/5 (The Matchup)', status: 'pending' },
+    { number: 5, label: 'Generating Batch 2/5 (Unit Deep Dive)', status: 'pending' },
+    { number: 6, label: 'Generating Batch 3/5 (Tactical Turn)', status: 'pending' },
+    { number: 7, label: 'Generating Batch 4/5 (Kill Screen)', status: 'pending' },
+    { number: 8, label: 'Generating Batch 5/5 (Aftermath)', status: 'pending' },
+    { number: 9, label: 'Validating Style Compliance', status: 'pending' },
+    { number: 10, label: 'Analyzing Repetition & Quality', status: 'pending' },
+    { number: 11, label: 'Polishing Narrative', status: 'pending' },
   ]);
 
   // Generated data
@@ -120,7 +120,7 @@ export default function WarRoomScriptingPage() {
       setRecursiveProgress({
         phase: 'hook',
         current_batch: 0,
-        total_batches: 7,
+        total_batches: 5,
         current_word_count: 0,
         target_word_count: targetDuration * 150,
       });
@@ -141,20 +141,72 @@ export default function WarRoomScriptingPage() {
       }
 
       const scriptResult = await scriptResponse.json();
-      const script: RecursiveScript = scriptResult.script;
+      let script: RecursiveScript = scriptResult.script;
 
-      // Mark all steps as completed
-      for (let i = 2; i <= 11; i++) {
+      // Mark steps 2-9 as completed
+      for (let i = 2; i <= 9; i++) {
         updateStepStatus(i, 'completed');
       }
+
+      // ============================================================================
+      // STEP 10: Analyze Repetition & Quality (OpenAI GPT-4o)
+      // ============================================================================
+      updateStepStatus(10, 'in_progress');
+
+      const auditResponse = await fetch('/api/generate/analyze-repetition', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ script: script.full_script }),
+      });
+
+      if (!auditResponse.ok) {
+        const errorData = await auditResponse.json();
+        throw new Error(errorData.error || 'Script audit failed');
+      }
+
+      const auditData = await auditResponse.json();
+      console.log('[Step 10] Audit complete');
+      updateStepStatus(10, 'completed');
+
+      // ============================================================================
+      // STEP 11: Polish Narrative (Claude Sonnet)
+      // ============================================================================
+      updateStepStatus(11, 'in_progress');
+
+      const polishResponse = await fetch('/api/generate/polish-script', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          rawScript: script.full_script,
+          auditReport: auditData.report,
+          targetDuration,
+        }),
+      });
+
+      if (!polishResponse.ok) {
+        const errorData = await polishResponse.json();
+        throw new Error(errorData.error || 'Script polish failed');
+      }
+
+      const polishData = await polishResponse.json();
+      console.log('[Step 11] Polish complete, word count:', polishData.wordCount);
+      updateStepStatus(11, 'completed');
+
+      // Update script with polished content
+      script = {
+        ...script,
+        polished_content: polishData.polishedContent,
+        polished_word_count: polishData.wordCount,
+        audit_report: auditData.report,
+      };
 
       setScriptDataLocal(script);
       setRecursiveScript(script);
       setRecursiveProgress({
         phase: 'complete',
-        current_batch: 7,
-        total_batches: 7,
-        current_word_count: script.total_word_count,
+        current_batch: 5,
+        total_batches: 5,
+        current_word_count: script.polished_word_count || script.total_word_count,
         target_word_count: targetDuration * 150,
       });
 
@@ -171,9 +223,9 @@ export default function WarRoomScriptingPage() {
 
       // Show style violations as warnings if any
       if (scriptResult.metadata?.style_violations?.length > 0) {
-        toast.success(`Script generated with ${scriptResult.metadata.style_violations.length} style warning(s)`);
+        toast.success(`Script generated and polished with ${scriptResult.metadata.style_violations.length} style warning(s)`);
       } else {
-        toast.success('War Room tactical documentary generated successfully!');
+        toast.success('War Room tactical documentary generated and polished!');
       }
     } catch (error) {
       console.error('Generation error:', error);
@@ -191,8 +243,10 @@ export default function WarRoomScriptingPage() {
   };
 
   const handleCopy = async () => {
-    if (scriptData?.full_script) {
-      await navigator.clipboard.writeText(scriptData.full_script);
+    // Copy polished content if available, otherwise fall back to raw script
+    const textToCopy = scriptData?.polished_content || scriptData?.full_script;
+    if (textToCopy) {
+      await navigator.clipboard.writeText(textToCopy);
       setCopied(true);
       toast.success('Script copied to clipboard!');
       setTimeout(() => setCopied(false), 2000);
@@ -229,7 +283,7 @@ export default function WarRoomScriptingPage() {
               <CardTitle className="text-3xl font-serif">War Room Configuration</CardTitle>
               <CardDescription className="text-base">
                 Configure your tactical documentary. The system will extract battlefield telemetry,
-                analyze unit builds, and generate a 10-point tactical breakdown.
+                analyze unit builds, and generate a 5-point Gamified War breakdown with 4-point analytical depth.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -274,7 +328,7 @@ export default function WarRoomScriptingPage() {
                 <p className="text-sm text-amber-700 dark:text-amber-300">
                   Tactical documentary with gaming terminology. Analyzes battles like post-game breakdowns —
                   unit builds, terrain meta, kill ratios, and tactical exploits. No flowery language about
-                  "valor" or "heroism" — pure tactical analysis.
+                  &quot;valor&quot; or &quot;heroism&quot; — pure tactical analysis.
                 </p>
               </div>
 
@@ -306,12 +360,12 @@ export default function WarRoomScriptingPage() {
                 <div className="space-y-2 mb-6">
                   <div className="flex justify-between text-sm">
                     <span className="font-medium">Batch Progress</span>
-                    <span>{completedBatches}/7 batches</span>
+                    <span>{completedBatches}/5 batches</span>
                   </div>
                   <div className="h-3 bg-muted rounded-full overflow-hidden">
                     <div
                       className="h-full bg-primary transition-all duration-500"
-                      style={{ width: `${(completedBatches / 7) * 100}%` }}
+                      style={{ width: `${(completedBatches / 5) * 100}%` }}
                     />
                   </div>
                 </div>
@@ -356,7 +410,7 @@ export default function WarRoomScriptingPage() {
                       className="w-full flex items-center justify-between p-4 text-left"
                     >
                       <span className="font-bold text-blue-800 dark:text-blue-200">
-                        Master Tactical Outline (10 Points)
+                        Gamified War Outline (5 Points + 4-Point Analysis)
                       </span>
                       {showOutline ? (
                         <ChevronUp className="h-5 w-5 text-blue-600" />
@@ -365,21 +419,63 @@ export default function WarRoomScriptingPage() {
                       )}
                     </button>
                     {showOutline && scriptData.master_outline && (
-                      <div className="px-4 pb-4 space-y-2 text-sm">
+                      <div className="px-4 pb-4 space-y-4 text-sm">
                         {Object.entries(scriptData.master_outline)
-                          .filter(([key]) => key !== 'generated_at')
+                          .filter(([key]) => !['generated_at', 'target_duration'].includes(key))
                           .map(([key, section]) => {
-                            const typedSection = section as { title: string; key_points: string[] };
+                            const typedSection = section as GamifiedWarSection;
                             return (
-                              <div key={key} className="border-b border-blue-100 dark:border-blue-800 pb-2">
-                                <div className="font-medium text-blue-800 dark:text-blue-200">
+                              <div key={key} className="border-b border-blue-100 dark:border-blue-800 pb-3">
+                                <div className="font-bold text-blue-800 dark:text-blue-200 text-base">
                                   {typedSection.title}
                                 </div>
+
+                                {/* Key Points */}
                                 <ul className="text-blue-600 dark:text-blue-400 text-xs mt-1 list-disc list-inside">
                                   {typedSection.key_points?.map((point: string, i: number) => (
                                     <li key={i}>{point}</li>
                                   ))}
                                 </ul>
+
+                                {/* 4-Point Analysis */}
+                                {typedSection.chapter_analysis && (
+                                  <div className="mt-2 pl-3 border-l-2 border-blue-300 dark:border-blue-700 space-y-1">
+                                    <div className="text-xs">
+                                      <span className="font-semibold text-amber-700 dark:text-amber-400">Stat Re-Hook:</span>{' '}
+                                      <span className="text-blue-700 dark:text-blue-300">{typedSection.chapter_analysis.stat_rehook}</span>
+                                    </div>
+                                    {typedSection.chapter_analysis.hollywood_myth && (
+                                      <div className="text-xs">
+                                        <span className="font-semibold text-red-700 dark:text-red-400">Hollywood Myth:</span>{' '}
+                                        <span className="text-blue-700 dark:text-blue-300">{typedSection.chapter_analysis.hollywood_myth}</span>
+                                      </div>
+                                    )}
+                                    <div className="text-xs">
+                                      <span className="font-semibold text-green-700 dark:text-green-400">Tactical Reality:</span>{' '}
+                                      <span className="text-blue-700 dark:text-blue-300">{typedSection.chapter_analysis.tactical_reality}</span>
+                                    </div>
+                                    {typedSection.chapter_analysis.total_war_parallel && (
+                                      <div className="text-xs">
+                                        <span className="font-semibold text-purple-700 dark:text-purple-400">Total War Parallel:</span>{' '}
+                                        <span className="text-blue-700 dark:text-blue-300">{typedSection.chapter_analysis.total_war_parallel}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+
+                                {/* Engagement Spike */}
+                                {typedSection.engagement_spike && (
+                                  <div className="mt-2 text-xs bg-yellow-100 dark:bg-yellow-900/30 p-2 rounded">
+                                    <span className="font-semibold">💬 Engagement:</span> {typedSection.engagement_spike}
+                                  </div>
+                                )}
+
+                                {/* Visual Note */}
+                                {typedSection.visual_note && (
+                                  <div className="mt-1 text-xs text-muted-foreground italic">
+                                    🎨 {typedSection.visual_note}
+                                  </div>
+                                )}
                               </div>
                             );
                           })}
@@ -413,7 +509,9 @@ export default function WarRoomScriptingPage() {
                   <div className="grid grid-cols-3 gap-4 text-sm">
                     <div className="bg-muted/50 p-3 rounded">
                       <div className="text-muted-foreground">Word Count</div>
-                      <div className="text-xl font-bold">{scriptData.total_word_count}</div>
+                      <div className="text-xl font-bold">
+                        {scriptData.polished_word_count || scriptData.total_word_count}
+                      </div>
                     </div>
                     <div className="bg-muted/50 p-3 rounded">
                       <div className="text-muted-foreground">Duration</div>
@@ -425,9 +523,16 @@ export default function WarRoomScriptingPage() {
                     </div>
                   </div>
 
+                  {/* Polished indicator */}
+                  {scriptData.polished_content && (
+                    <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg p-3 text-sm text-green-700 dark:text-green-300">
+                      ✓ Script has been audited and polished for quality
+                    </div>
+                  )}
+
                   <div className="bg-card border border-border rounded-lg p-4 max-h-96 overflow-y-auto">
                     <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed">
-                      {scriptData.full_script}
+                      {scriptData.polished_content || scriptData.full_script}
                     </pre>
                   </div>
                 </div>
