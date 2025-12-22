@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { getOpenAIClient } from '@/lib/ai/openai';
 import { SYSTEM_PROMPT, SCENE_BREAKDOWN_PROMPT } from '@/lib/prompts/all-prompts';
-import { SCENE_DURATION_SECONDS } from '@/lib/config/development';
+import { calculateSceneTimingPlan } from '@/lib/utils/scene-timing';
 
 export const maxDuration = 600; // 10 minutes timeout for large scene generation
 export const runtime = 'nodejs'; // Use Node.js runtime for streaming support
@@ -17,20 +17,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Calculate expected scene count based on script duration
+    // Calculate expected video duration
     const wordCount = script.trim().split(/\s+/).length;
     const wordsPerMinute = 150; // Average narration speed
     const durationSeconds = Math.round((wordCount / wordsPerMinute) * 60);
-    const targetSceneCount = Math.round(durationSeconds / SCENE_DURATION_SECONDS);
+
+    // Calculate variable scene timing plan
+    const timingPlan = calculateSceneTimingPlan(durationSeconds);
 
     console.log(`[Scene Analysis] Analyzing script (${script.length} characters, ${wordCount} words, ~${Math.round(durationSeconds / 60)} minutes)`);
-    console.log(`[Scene Analysis] Target scene count: ${targetSceneCount} (${durationSeconds}s / ${SCENE_DURATION_SECONDS}s per scene)`);
+    console.log(`[Scene Analysis] Variable timing plan: ${timingPlan.totalScenes} scenes across ${timingPlan.segments.length} segments`);
+    timingPlan.segments.forEach(s => {
+      console.log(`  - ${s.segment.name}: ${s.sceneCount} scenes (${s.segment.avgDuration}s avg)`);
+    });
 
     const client = getOpenAIClient();
-    const prompt = SCENE_BREAKDOWN_PROMPT(script, targetSceneCount);
+    const prompt = SCENE_BREAKDOWN_PROMPT(script, timingPlan);
 
-    // Cap max_tokens at 16000 for GPT-4o
-    const maxTokens = Math.min(16000, Math.max(4000, targetSceneCount * 350));
+    // Cap max_tokens at 16000 for GPT-4o (increase token budget for variable timing)
+    const maxTokens = Math.min(16000, Math.max(4000, timingPlan.totalScenes * 400));
 
     // Use GPT-4o with streaming for long scene generation
     console.log(`[Scene Analysis] Starting streaming generation with max_tokens: ${maxTokens}`);
@@ -108,7 +113,7 @@ export async function POST(request: NextRequest) {
             return;
           }
 
-          console.log(`[Scene Analysis] Successfully parsed ${scenes.length} scenes (target: ${targetSceneCount})`);
+          console.log(`[Scene Analysis] Successfully parsed ${scenes.length} scenes (target: ${timingPlan.totalScenes})`);
 
           // Send final result
           const resultData = JSON.stringify({
@@ -116,9 +121,16 @@ export async function POST(request: NextRequest) {
             scenes,
             metadata: {
               total_scenes: scenes.length,
-              target_scenes: targetSceneCount,
+              target_scenes: timingPlan.totalScenes,
               script_word_count: wordCount,
               estimated_duration_seconds: durationSeconds,
+              timing_plan: timingPlan.segments.map(s => ({
+                segment: s.segment.name,
+                scene_count: s.sceneCount,
+                start_time: s.cumulativeStartTime,
+                end_time: s.cumulativeEndTime,
+                avg_duration: s.segment.avgDuration,
+              })),
               average_snippet_length: Math.round(
                 scenes.reduce((sum: number, s: { script_snippet: string }) => sum + s.script_snippet.length, 0) / scenes.length
               ),

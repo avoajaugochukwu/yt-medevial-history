@@ -106,6 +106,9 @@ export interface MapData {
   territories: string[];
 }
 
+// Segment type for variable scene timing
+export type SceneSegment = 'hook' | 'setup' | 'core_content' | 'deep_dive' | 'long_tail';
+
 export interface Scene {
   scene_number: number;
   scene_type?: 'visual' | 'map';
@@ -113,6 +116,9 @@ export interface Scene {
   visual_prompt: string;
   historical_context?: string;
   map_data?: MapData;
+  // Variable timing properties
+  segment?: SceneSegment;
+  suggested_duration?: number;
 }
 
 export interface StoryboardScene extends Scene {

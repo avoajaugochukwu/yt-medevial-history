@@ -10,6 +10,7 @@ import type {
   RecursivePromptPayload,
   ScriptDuration,
 } from '@/lib/types';
+import type { SceneTimingPlan } from '@/lib/utils/scene-timing';
 
 export const SYSTEM_PROMPT = `You are the War Room, a tactical documentary engine that analyzes historical battles with the precision of post-game analysis. You use gaming terminology to explain the mechanics of warfare - treating units as builds, terrain as map meta, and tactical decisions as exploits or errors. Your style is analytical, assertive, and gamified. You never use flowery language about "valor" or "heroism" - you discuss kill ratios, morale thresholds, and flank efficiency.`;
 
@@ -579,17 +580,19 @@ ${batchNumber === totalBatches ? '8. This is the FINAL batch - include a "Post-G
 // PROMPT 4: SCENE VISUAL BREAKDOWN
 // ============================================================================
 
-export const SCENE_BREAKDOWN_PROMPT = (script: string, targetSceneCount: number) => `### ROLE
+export const SCENE_BREAKDOWN_PROMPT = (script: string, timingPlan: SceneTimingPlan) => `### ROLE
 
-You are a **Visual Director** for historical documentary content, specialized in translating narration into stunning visual scene descriptions and historical cartography.
+You are a **Visual Director** for historical documentary content, specialized in translating narration into stunning visual scene descriptions with VARIABLE PACING based on video position.
 
 ### OBJECTIVE
 
-Analyze the provided script and break it into approximately ${targetSceneCount} distinct visual scenes. Each scene should be either:
+Analyze the provided script and break it into approximately ${timingPlan.totalScenes} distinct visual scenes with VARIABLE TIMING. Each scene should be either:
 1. **Visual Scene (scene_type: "visual"):** A dramatic, painterly image in classical historical art style
 2. **Map Scene (scene_type: "map"):** A historical cartographic map showing geographic context
 
-**TARGET SCENE COUNT:** ${targetSceneCount} scenes (based on script duration and ~7-8 seconds per scene)
+**CRITICAL: Each scene MUST include a "segment" field and "suggested_duration" field.**
+
+${timingPlan.promptGuidance}
 
 ### MAP SCENE DETECTION
 
@@ -646,34 +649,41 @@ Each scene description must be detailed enough for an AI image generator to crea
 
 ### OUTPUT FORMAT
 
-Return a JSON array of scenes (ONLY valid JSON, no markdown code blocks):
+Return a JSON array of scenes (ONLY valid JSON, no markdown code blocks).
+**EVERY scene MUST include "segment" and "suggested_duration" fields.**
 
 [
   {
     "scene_number": 1,
     "scene_type": "map",
-    "script_snippet": "January 10th, 49 BC. The Rubicon River, northern Italy...",
-    "visual_prompt": "Historical cartographic map of Roman Italy in 49 BC. Shows the Italian peninsula with Cisalpine Gaul (Gallia Cisalpina) in the north beyond the Rubicon River, the Roman territories of Italia proper, and the city of Rome in Latium. Political boundaries clearly marked in distinct colors showing Roman administrative regions. The Rubicon River prominently labeled as the sacred boundary. Major cities indicated: Rome, Ravenna, Ariminum. Apennine mountain range shown in relief style, Tyrrhenian Sea and Adriatic Sea labeled with decorative calligraphy. Aged parchment texture, ornate compass rose, baroque cartouche with title 'Italia 49 BC'. Muted earth tones: sepia, sage green, dusty blue. 18th-century cartographic art style, museum quality.",
-    "historical_context": "The Rubicon River marked the legal boundary between Cisalpine Gaul (Caesar's province) and Italia. Crossing it with an army was an act of treason.",
+    "segment": "hook",
+    "suggested_duration": 2.0,
+    "script_snippet": "January 10th, 49 BC. The Rubicon River.",
+    "visual_prompt": "Historical cartographic map of Roman Italy in 49 BC. Shows the Italian peninsula with Cisalpine Gaul beyond the Rubicon River. Political boundaries clearly marked. The Rubicon River prominently labeled. Major cities indicated: Rome, Ravenna. Aged parchment texture, ornate compass rose. Muted earth tones: sepia, sage green. 18th-century cartographic art style, museum quality.",
+    "historical_context": "The Rubicon River marked the legal boundary between Cisalpine Gaul and Italia.",
     "map_data": {
       "location": "Roman Italy",
       "time_period": "49 BC",
-      "geographic_focus": "Rubicon River boundary between Cisalpine Gaul and Italia",
-      "territories": ["Cisalpine Gaul", "Italia", "Roman Republic territories", "Latium"]
+      "geographic_focus": "Rubicon River boundary",
+      "territories": ["Cisalpine Gaul", "Italia"]
     }
   },
   {
     "scene_number": 2,
     "scene_type": "visual",
-    "script_snippet": "January 10th, 49 BC. The Rubicon River, northern Italy...",
-    "visual_prompt": "Cinematic oil painting in the style of Jacques-Louis David. Julius Caesar on horseback at the edge of the Rubicon River at dawn, Roman general in red paludamentum cloak and polished bronze muscle cuirass, one hand raised dramatically. Behind him, the Thirteenth Legion in formation - Roman legionaries in lorica segmentata armor with rectangular scutum shields, red tunics, iron helmets with red plumes. Misty winter morning, golden sunlight breaking through clouds, the shallow river reflecting the sky. Aquila eagle standard prominent. Dramatic chiaroscuro lighting, heroic composition, 8k detail, historically accurate, cinematic atmosphere. Renaissance master technique, rich oil painting textures.",
-    "historical_context": "Caesar's decision to cross the Rubicon with his legion was illegal and precipitated the Roman Civil War"
+    "segment": "hook",
+    "suggested_duration": 2.0,
+    "script_snippet": "A lone general stares across the water.",
+    "visual_prompt": "Cinematic oil painting. Julius Caesar on horseback at the Rubicon River at dawn, Roman general in red cloak and bronze cuirass. Misty morning, golden sunlight breaking through. Dramatic chiaroscuro, heroic composition, 8k detail.",
+    "historical_context": "Caesar's decision to cross precipitated the Roman Civil War"
   },
   {
-    "scene_number": 3,
+    "scene_number": 15,
     "scene_type": "visual",
-    "script_snippet": "The clash of bronze echoes across the valley...",
-    "visual_prompt": "Epic battle scene in Romantic era oil painting style. Aerial view of the Battle of Cannae, 216 BC. Carthaginian forces in crescent formation enveloping Roman legions in the center. Mass of 100,000+ soldiers, dust clouds rising, Carthaginian war elephants visible on flanks. Bronze weapons catching sunlight, red and white of Roman standards contrasting with Carthaginian purple. August heat, southern Italian landscape, dramatic sky. Painted in the style of Peter Paul Rubens' battle scenes - dynamic movement, muscular figures, theatrical lighting, rich colors, grand scale, 8k resolution.",
+    "segment": "core_content",
+    "suggested_duration": 8.0,
+    "script_snippet": "The clash of bronze echoes across the valley as Roman and Carthaginian forces collide in what would become history's most devastating tactical maneuver.",
+    "visual_prompt": "Epic battle scene in Romantic era oil painting style. Aerial view of the Battle of Cannae, 216 BC. Carthaginian forces in crescent formation enveloping Roman legions. Mass of soldiers, dust clouds rising. Bronze weapons catching sunlight. Painted in the style of Peter Paul Rubens - dynamic movement, theatrical lighting, grand scale, 8k resolution.",
     "historical_context": "Hannibal's double envelopment at Cannae is considered one of history's most perfect tactical victories"
   }
 ]
@@ -698,12 +708,18 @@ Return a JSON array of scenes (ONLY valid JSON, no markdown code blocks):
 
 ### CONSTRAINTS
 
-- Generate approximately ${targetSceneCount} scenes to match the script duration
+- Generate exactly ${timingPlan.totalScenes} scenes distributed across segments as specified above
+- **EVERY scene MUST have "segment" and "suggested_duration" fields**
 - Each visual_prompt must be 50-100 words (detailed enough for quality image generation)
-- Script_snippet should be the actual text from the script this scene illustrates
+- Script_snippet length varies by segment:
+  - HOOK: 1-2 sentences maximum (rapid cuts)
+  - SETUP: 2-4 sentences (establishing context)
+  - CORE_CONTENT: 3-5 sentences (main narrative)
+  - DEEP_DIVE: 5-8 sentences (detailed analysis)
+  - LONG_TAIL: 6-10 sentences (reflective conclusion)
 - Historical_context is optional but valuable for understanding
-- Space scenes evenly throughout the script to maintain consistent pacing
-- Maintain chronological order matching the script`;
+- Maintain chronological order matching the script
+- Transition smoothly between segments (no jarring pacing changes)`;
 
 // ============================================================================
 // SCENE IMAGE GENERATION - OIL PAINTING STYLE INJECTION

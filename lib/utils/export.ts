@@ -9,6 +9,7 @@ import {
   WorkflowStep
 } from '../types';
 import { SCENE_DURATION_SECONDS } from '../config/development';
+import { formatTime } from './scene-timing';
 
 interface ExportData {
   topic: HistoricalTopic | null;
@@ -53,14 +54,40 @@ function createFFmpegManifest(data: ExportData): string {
   let manifest = '# FFmpeg Assembly Manifest\n';
   manifest += '# Generated on ' + new Date().toISOString() + '\n\n';
 
+  // Check if scenes have variable timing
+  const hasVariableTiming = data.storyboardScenes.some(s => s.suggested_duration);
+
   // Video assembly command example
   manifest += '## Example FFmpeg Commands\n\n';
 
-  // Image sequence to video
-  manifest += `### Create video from image sequence (${SCENE_DURATION_SECONDS} seconds per scene):\n`;
-  manifest += '```bash\n';
-  manifest += `ffmpeg -framerate 1/${SCENE_DURATION_SECONDS} -i media/scenes/scene_%03d.jpg -c:v libx264 -pix_fmt yuv420p scenes_video.mp4\n`;
-  manifest += '```\n\n';
+  if (hasVariableTiming) {
+    // Variable timing mode using concat demuxer
+    manifest += '### Variable Timing Mode (scenes have different durations)\n\n';
+    manifest += '1. First, create `input.txt` in the media/scenes folder with this content:\n';
+    manifest += '```\n';
+
+    data.storyboardScenes.forEach((scene, idx) => {
+      const duration = scene.suggested_duration ?? SCENE_DURATION_SECONDS;
+      manifest += `file 'scene_${padNumber(idx + 1)}.jpg'\n`;
+      manifest += `duration ${duration}\n`;
+    });
+    // Repeat last frame to avoid ending issues
+    if (data.storyboardScenes.length > 0) {
+      manifest += `file 'scene_${padNumber(data.storyboardScenes.length)}.jpg'\n`;
+    }
+    manifest += '```\n\n';
+
+    manifest += '2. Then run:\n';
+    manifest += '```bash\n';
+    manifest += 'ffmpeg -f concat -safe 0 -i input.txt -vsync vfr -pix_fmt yuv420p scenes_video.mp4\n';
+    manifest += '```\n\n';
+  } else {
+    // Fixed duration mode
+    manifest += `### Create video from image sequence (${SCENE_DURATION_SECONDS} seconds per scene):\n`;
+    manifest += '```bash\n';
+    manifest += `ffmpeg -framerate 1/${SCENE_DURATION_SECONDS} -i media/scenes/scene_%03d.jpg -c:v libx264 -pix_fmt yuv420p scenes_video.mp4\n`;
+    manifest += '```\n\n';
+  }
 
   // Add audio instructions
   manifest += '### Add audio to video:\n';
@@ -68,17 +95,28 @@ function createFFmpegManifest(data: ExportData): string {
   manifest += 'ffmpeg -i scenes_video.mp4 -i your_audio.mp3 -c:v copy -c:a aac final_video.mp4\n';
   manifest += '```\n\n';
 
-  // Scene timing information
-  manifest += '## Scene Timing Information:\n';
+  // Scene timing information with segment breakdown
+  manifest += '## Scene Timing Breakdown:\n\n';
+  let cumulativeTime = 0;
   data.storyboardScenes.forEach((scene, index) => {
-    manifest += `Scene ${padNumber(index + 1)}: ${scene.script_snippet?.substring(0, 50)}...\n`;
+    const duration = scene.suggested_duration ?? SCENE_DURATION_SECONDS;
+    const segment = scene.segment ?? 'unknown';
+    const startTime = formatTime(cumulativeTime);
+    cumulativeTime += duration;
+    const endTime = formatTime(cumulativeTime);
+    manifest += `Scene ${padNumber(index + 1)}: [${segment.toUpperCase()}] ${startTime} - ${endTime} (${duration}s)\n`;
+    manifest += `  "${scene.script_snippet?.substring(0, 50)}..."\n\n`;
   });
+
+  manifest += `\nTotal Duration: ${formatTime(cumulativeTime)}\n`;
 
   return manifest;
 }
 
 // Create assembly guide markdown
 function createAssemblyGuide(data: ExportData): string {
+  const hasVariableTiming = data.storyboardScenes.some(s => s.suggested_duration);
+
   let guide = '# Video Assembly Guide\n\n';
   guide += `## Project: ${data.topic?.title || 'Untitled Story'}\n`;
   guide += `Generated on: ${new Date().toLocaleString()}\n\n`;
@@ -89,9 +127,37 @@ function createAssemblyGuide(data: ExportData): string {
   guide += '└── scenes/         # Sequential scene images\n';
   guide += '```\n\n';
 
+  // Calculate total duration and segment breakdown
+  let totalDuration = 0;
+  const segmentCounts: Record<string, { count: number; duration: number }> = {};
+
+  data.storyboardScenes.forEach(scene => {
+    const duration = scene.suggested_duration ?? SCENE_DURATION_SECONDS;
+    totalDuration += duration;
+    const segment = scene.segment ?? 'unknown';
+    if (!segmentCounts[segment]) {
+      segmentCounts[segment] = { count: 0, duration: 0 };
+    }
+    segmentCounts[segment].count++;
+    segmentCounts[segment].duration += duration;
+  });
+
   guide += '## Assets Summary\n\n';
-  guide += `- **Scenes**: ${data.storyboardScenes.filter(s => s.image_url).length} images (${SCENE_DURATION_SECONDS} seconds each)\n`;
-  guide += `- **Scene Pacing**: ${SCENE_DURATION_SECONDS} seconds per scene\n\n`;
+  guide += `- **Total Scenes**: ${data.storyboardScenes.filter(s => s.image_url).length} images\n`;
+  guide += `- **Total Duration**: ${formatTime(totalDuration)}\n`;
+
+  if (hasVariableTiming) {
+    guide += `- **Pacing Mode**: Variable (segment-based)\n\n`;
+    guide += '### Segment Breakdown\n\n';
+    guide += '| Segment | Scenes | Duration |\n';
+    guide += '|---------|--------|----------|\n';
+    Object.entries(segmentCounts).forEach(([segment, data]) => {
+      guide += `| ${segment.toUpperCase()} | ${data.count} | ${formatTime(data.duration)} |\n`;
+    });
+    guide += '\n';
+  } else {
+    guide += `- **Scene Pacing**: ${SCENE_DURATION_SECONDS} seconds per scene\n\n`;
+  }
 
   guide += '## Assembly Steps\n\n';
   guide += '1. **Review Assets**: Check all media files are present\n';
@@ -101,10 +167,16 @@ function createAssemblyGuide(data: ExportData): string {
   guide += '5. **Add Transitions**: Optional - add fade effects between scenes\n\n';
 
   guide += '## Scene Breakdown\n\n';
+  let cumulativeTime = 0;
   data.storyboardScenes.forEach((scene, index) => {
-    guide += `### Scene ${padNumber(index + 1)}\n`;
+    const duration = scene.suggested_duration ?? SCENE_DURATION_SECONDS;
+    const segment = scene.segment ?? 'unknown';
+    guide += `### Scene ${padNumber(index + 1)} [${segment.toUpperCase()}]\n`;
     guide += `- **File**: scene_${padNumber(index + 1)}.${scene.image_url ? getFileExtension(scene.image_url) : 'jpg'}\n`;
+    guide += `- **Timestamp**: ${formatTime(cumulativeTime)} - ${formatTime(cumulativeTime + duration)}\n`;
+    guide += `- **Duration**: ${duration} seconds\n`;
     guide += `- **Script**: ${scene.script_snippet?.substring(0, 100)}...\n\n`;
+    cumulativeTime += duration;
   });
 
   return guide;
@@ -112,15 +184,29 @@ function createAssemblyGuide(data: ExportData): string {
 
 // Create scene timeline JSON for advanced editing
 function createSceneTimeline(data: ExportData): object {
+  const hasVariableTiming = data.storyboardScenes.some(s => s.suggested_duration);
+  let cumulativeTime = 0;
+
   const timeline = {
     project: data.topic?.title || 'Untitled',
     total_scenes: data.storyboardScenes.length,
-    scenes: data.storyboardScenes.map((scene, index) => ({
-      scene_number: index + 1,
-      filename: `scene_${padNumber(index + 1)}.jpg`,
-      script_excerpt: scene.script_snippet?.substring(0, 100),
-      suggested_duration_seconds: SCENE_DURATION_SECONDS,
-    }))
+    has_variable_timing: hasVariableTiming,
+    scenes: data.storyboardScenes.map((scene, index) => {
+      const duration = scene.suggested_duration ?? SCENE_DURATION_SECONDS;
+      const startTime = cumulativeTime;
+      cumulativeTime += duration;
+
+      return {
+        scene_number: index + 1,
+        filename: `scene_${padNumber(index + 1)}.jpg`,
+        script_excerpt: scene.script_snippet?.substring(0, 100),
+        segment: scene.segment ?? 'unknown',
+        suggested_duration_seconds: duration,
+        timestamp_start: startTime,
+        timestamp_end: cumulativeTime,
+      };
+    }),
+    total_duration_seconds: cumulativeTime,
   };
 
   return timeline;
