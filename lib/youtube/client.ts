@@ -1,12 +1,28 @@
-import { Client } from 'youtubei';
+import { YoutubeTranscript } from '@danielxceron/youtube-transcript';
+import type { TranscriptSegment } from '@/lib/types';
 
-let youtubeClient: Client | null = null;
+export interface TranscriptResponse {
+  segments: TranscriptSegment[];
+  text: string;
+}
 
-export function getYouTubeClient(): Client {
-  if (!youtubeClient) {
-    youtubeClient = new Client();
+export async function fetchTranscript(videoUrl: string): Promise<TranscriptResponse> {
+  const videoId = extractVideoId(videoUrl);
+  if (!videoId) {
+    throw new Error('Invalid YouTube URL');
   }
-  return youtubeClient;
+
+  const transcriptItems = await YoutubeTranscript.fetchTranscript(videoId);
+
+  const segments: TranscriptSegment[] = transcriptItems.map((item) => ({
+    start: item.offset / 1000, // Convert ms to seconds
+    duration: item.duration / 1000, // Convert ms to seconds
+    text: item.text,
+  }));
+
+  const text = segments.map((s) => s.text).join(' ');
+
+  return { segments, text };
 }
 
 export function extractVideoId(url: string): string | null {
