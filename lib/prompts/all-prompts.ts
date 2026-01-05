@@ -626,7 +626,6 @@ Each scene description must be detailed enough for an AI image generator to crea
 2. **Composition:** Camera angle, framing, perspective
 3. **Historical Details:** Accurate clothing, armor, architecture, objects
 4. **Lighting & Mood:** Time of day, weather, atmosphere
-5. **Artistic Style:** "Oil painting by Jacques-Louis David" or "Neoclassical historical painting" or "Romantic era battle scene"
 
 **Historical Accuracy:**
 - Specify correct armor/weapons for the era (lorica segmentata for Imperial Rome, chainmail for Medieval, etc.)
@@ -678,7 +677,7 @@ Return a JSON array of scenes (ONLY valid JSON, no markdown code blocks).
     "segment": "hook",
     "suggested_duration": 2.0,
     "script_snippet": "A lone general stares across the water.",
-    "visual_prompt": "Cinematic oil painting. Julius Caesar on horseback at the Rubicon River at dawn, Roman general in red cloak and bronze cuirass. Misty morning, golden sunlight breaking through. Dramatic chiaroscuro, heroic composition, 8k detail.",
+    "visual_prompt": "Julius Caesar on horseback at the Rubicon River at dawn, Roman general in red cloak and bronze cuirass. Misty morning, golden sunlight breaking through. Dramatic chiaroscuro lighting, heroic composition.",
     "historical_context": "Caesar's decision to cross precipitated the Roman Civil War"
   },
   {
@@ -687,28 +686,10 @@ Return a JSON array of scenes (ONLY valid JSON, no markdown code blocks).
     "segment": "core_content",
     "suggested_duration": 8.0,
     "script_snippet": "The clash of bronze echoes across the valley as Roman and Carthaginian forces collide in what would become history's most devastating tactical maneuver.",
-    "visual_prompt": "Epic battle scene in Romantic era oil painting style. Aerial view of the Battle of Cannae, 216 BC. Carthaginian forces in crescent formation enveloping Roman legions. Mass of soldiers, dust clouds rising. Bronze weapons catching sunlight. Painted in the style of Peter Paul Rubens - dynamic movement, theatrical lighting, grand scale, 8k resolution.",
+    "visual_prompt": "Aerial view of the Battle of Cannae, 216 BC. Carthaginian forces in crescent formation enveloping Roman legions. Mass of soldiers in bronze armor, dust clouds rising. Weapons catching sunlight. Dynamic movement, theatrical lighting, grand scale.",
     "historical_context": "Hannibal's double envelopment at Cannae is considered one of history's most perfect tactical victories"
   }
 ]
-
-### STYLE KEYWORDS TO USE
-
-**Classical/Neoclassical (Roman, Greek subjects):**
-- "Jacques-Louis David oil painting style"
-- "Neoclassical historical painting"
-- "Academic art, dramatic lighting, heroic composition"
-
-**Medieval/Napoleonic:**
-- "Romantic era historical painting"
-- "19th century battle scene oil painting"
-- "Delacroix/Gericault style dramatic historical art"
-
-**General Historical:**
-- "Renaissance master technique"
-- "Chiaroscuro lighting, tenebrism"
-- "Oil painting, rich textures, 8k detail, historically accurate"
-- "Cinematic composition, dramatic atmosphere"
 
 ### CONSTRAINTS
 
