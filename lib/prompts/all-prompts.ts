@@ -633,12 +633,16 @@ Each scene description must be detailed enough for an AI image generator to crea
 - Name architectural styles (Doric columns, Gothic arches, etc.)
 - Use era-appropriate colors and materials
 
-**Content Sensitivity Guidelines (CRITICAL):**
+**Content Sensitivity Guidelines (CRITICAL - NO SENSITIVE CONTENT WARNINGS):**
 - AVOID graphic depictions of violence: no close-ups of wounds, injuries, blood, or gore
 - For battle scenes: focus on formations, banners, cavalry charges, soldiers in combat stance - NOT graphic wounds or suffering
 - For medical/illness topics: use symbolic imagery (physicians, herbs, hospitals) - NEVER show symptoms, disfigurement, or suffering
 - NO torture scenes, executions with visible gore, or graphic death depictions
 - Keep battle imagery heroic and distant rather than graphic and close-up
+- ALL figures MUST be fully clothed in period-appropriate military or civilian attire - NO nudity, partial nudity, or revealing clothing
+- NO suggestive poses, romantic scenes, intimate moments, or sexual content of any kind
+- NO disturbing imagery: rotting corpses, decay, bodily fluids, grotesque deformities, horror elements
+- Even if historically accurate, do NOT depict: slave markets with exposed bodies, bath houses with nudity, or any scene requiring undressed figures
 
 **PROHIBITED SCENE TYPES (CRITICAL - These reveal AI generation):**
 - NO balance sheets, spreadsheets, charts, graphs, or data visualizations
@@ -773,7 +777,7 @@ NEGATIVE PROMPTS (AVOID):
 export const OIL_PAINTING_STYLE_SUFFIX = generateStyleSuffix();
 
 export const NEGATIVE_PROMPT_HISTORICAL =
-  "cartoon, anime, manga, sketch, vector art, minimalist, flat design, modern clothing, contemporary setting, smartphones, blur, distorted faces, low quality, text, watermark, logo, abstract, surrealist, anachronistic, digital art style, 3D render, gore, blood, open wounds, graphic violence, injuries, disfigurement, illness, disease symptoms, suffering, graphic medical procedures, dismemberment, mutilation, decapitation, severed limbs, visible internal organs, graphic bodily harm, torture scenes, close-up wounds, bleeding, graphic death scenes, balance sheet, infographic, chart, graph, data visualization, comparison diagram, statistics, spreadsheet, timeline diagram";
+  "cartoon, anime, manga, sketch, vector art, minimalist, flat design, modern clothing, contemporary setting, smartphones, blur, distorted faces, low quality, text, watermark, logo, abstract, surrealist, anachronistic, digital art style, 3D render, gore, blood, open wounds, graphic violence, injuries, disfigurement, illness, disease symptoms, suffering, graphic medical procedures, dismemberment, mutilation, decapitation, severed limbs, visible internal organs, graphic bodily harm, torture scenes, close-up wounds, bleeding, graphic death scenes, balance sheet, infographic, chart, graph, data visualization, comparison diagram, statistics, spreadsheet, timeline diagram, nudity, naked, nude, partial nudity, bare chest, bare breasts, exposed skin, revealing clothing, provocative pose, suggestive, sexual, sensual, erotic, NSFW, adult content, cleavage, underwear, lingerie, bikini, shirtless, topless, scantily clad, seductive, intimate, romantic embrace, kissing, corpse, rotting, decay, maggots, vomit, feces, urine, bodily fluids, pus, festering, pustules, boils, rash, sores, deformed body, grotesque, horror, nightmare, demonic, hellscape, disturbing";
 
 // ============================================================================
 // AI-GENERATED ART STYLE DETERMINATION
@@ -892,7 +896,7 @@ NEGATIVE PROMPTS (MAPS - AVOID):
 - NO text rendering errors, gibberish, or illegible labels`;
 
 export const NEGATIVE_PROMPT_MAPS =
-  "satellite imagery, modern map, GPS, Google Maps, digital cartography, contemporary borders, modern countries, neon colors, sans-serif fonts, photographs, 3D terrain, realistic rendering, highways, airports, modern infrastructure, minimalist, clean design, vector graphics, web map, topographic precision, modern symbols, bright colors, sharp edges, sterile, computational, balance sheet, comparison map, before after, side by side, infographic, chart, graph, data visualization, statistics, numbers overlay, text overlay, figures on map, people on map, human figures, soldiers on map";
+  "satellite imagery, modern map, GPS, Google Maps, digital cartography, contemporary borders, modern countries, neon colors, sans-serif fonts, photographs, 3D terrain, realistic rendering, highways, airports, modern infrastructure, minimalist, clean design, vector graphics, web map, topographic precision, modern symbols, bright colors, sharp edges, sterile, computational, balance sheet, comparison map, before after, side by side, infographic, chart, graph, data visualization, statistics, numbers overlay, text overlay, figures on map, people on map, human figures, soldiers on map, nudity, naked, nude, revealing clothing, suggestive, sexual, NSFW, gore, blood, corpse, rotting, decay, grotesque, horror, disturbing";
 
 // ============================================================================
 // SCRIPT QUALITY OPTIMIZATION - AUDIT & POLISH PROMPTS

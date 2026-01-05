@@ -13,6 +13,8 @@ const initialState = {
   tacticalResearch: null,
   recursiveScript: null,
   recursiveProgress: null,
+  // YouTube repurposing state
+  repurposeSession: null,
   // Workflow state
   isGenerating: false,
   errors: [],
@@ -62,4 +64,14 @@ export const useSessionStore = create<SessionStore>((set) => ({
   setRecursiveScript: (script) => set({ recursiveScript: script }),
 
   setRecursiveProgress: (progress) => set({ recursiveProgress: progress }),
+
+  // Repurpose actions
+  setRepurposeSession: (session) => set({ repurposeSession: session }),
+
+  updateRepurposeSession: (updates) =>
+    set((state) => ({
+      repurposeSession: state.repurposeSession
+        ? { ...state.repurposeSession, ...updates }
+        : null,
+    })),
 }));

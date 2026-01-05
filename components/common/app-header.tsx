@@ -57,9 +57,19 @@ export function AppHeader() {
             </div>
 
             <div className="flex items-center gap-3">
-              <p className="text-sm text-gray-600 hidden lg:block">
-                AI-Powered Historical Narratives
-              </p>
+              <Button
+                variant={pathname === '/rewrite' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => router.push('/rewrite')}
+                className={cn(
+                  "text-sm",
+                  pathname === '/rewrite'
+                    ? "bg-primary text-primary-foreground"
+                    : ""
+                )}
+              >
+                Rewrite
+              </Button>
             </div>
           </div>
         </div>

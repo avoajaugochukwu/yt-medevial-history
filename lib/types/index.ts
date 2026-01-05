@@ -150,6 +150,9 @@ export interface SessionStore {
   recursiveScript: RecursiveScript | null;
   recursiveProgress: RecursiveGenerationProgress | null;
 
+  // YouTube repurposing state
+  repurposeSession: RepurposeSession | null;
+
   // Workflow state
   isGenerating: boolean;
   errors: string[];
@@ -174,6 +177,10 @@ export interface SessionStore {
   setTacticalResearch: (research: TacticalResearch) => void;
   setRecursiveScript: (script: RecursiveScript) => void;
   setRecursiveProgress: (progress: RecursiveGenerationProgress) => void;
+
+  // Repurpose actions
+  setRepurposeSession: (session: RepurposeSession | null) => void;
+  updateRepurposeSession: (updates: Partial<RepurposeSession>) => void;
 }
 
 // ============================================================================
@@ -343,4 +350,90 @@ export interface WarRoomStyleConstraints {
   prohibited_words: string[];
   mandatory_terminology: string[];
   style_rules: string[];
+}
+
+// ============================================================================
+// YOUTUBE REPURPOSING TYPES
+// ============================================================================
+
+export interface YouTubeVideoMetadata {
+  videoId: string;
+  title: string;
+  description: string;
+  duration: number; // seconds
+  channelName: string;
+  publishedAt: string;
+  thumbnailUrl?: string;
+}
+
+export interface TranscriptSegment {
+  start: number; // seconds
+  duration: number; // seconds
+  text: string;
+}
+
+export interface YouTubeTranscript {
+  text: string; // Full transcript text
+  segments?: TranscriptSegment[]; // Optional timestamped segments
+  language: string;
+  wordCount: number;
+}
+
+export interface YouTubeExtraction {
+  metadata: YouTubeVideoMetadata;
+  transcript: YouTubeTranscript;
+  extractedAt: Date;
+}
+
+// Phase 1: Analysis output
+export interface ScriptAnalysis {
+  hookQuality: {
+    score: number; // 1-10
+    strengths: string[];
+    weaknesses: string[];
+    suggestions: string[];
+  };
+  retentionTactics: {
+    score: number; // 1-10
+    identifiedTactics: string[];
+    missingTactics: string[];
+    suggestions: string[];
+  };
+  structureAnalysis: {
+    score: number; // 1-10
+    pacing: string;
+    transitions: string;
+    payoffs: string;
+  };
+  overallScore: number;
+  keyStrengths: string[];
+  criticalImprovements: string[];
+  analyzedAt: Date;
+}
+
+// Phase 2: Rewrite output
+export interface RewrittenScript {
+  content: string; // TTS-ready plain paragraphs
+  wordCount: number;
+  estimatedDuration: number; // minutes (target: 25)
+  appliedTechniques: string[];
+  rewrittenAt: Date;
+}
+
+// Combined repurpose session
+export type RepurposeStatus =
+  | 'idle'
+  | 'extracting'
+  | 'analyzing'
+  | 'rewriting'
+  | 'complete'
+  | 'error';
+
+export interface RepurposeSession {
+  youtubeUrl: string;
+  extraction: YouTubeExtraction | null;
+  analysis: ScriptAnalysis | null;
+  rewrittenScript: RewrittenScript | null;
+  status: RepurposeStatus;
+  error?: string;
 }

@@ -30,6 +30,7 @@
     "react-dom": "19.1.0",
     "react-hot-toast": "^2.6.0",
     "tailwind-merge": "^3.3.1",
+    "youtubei": "^1.8.3",
     "zod": "^3.25.76",
     "zustand": "^5.0.8"
   },
