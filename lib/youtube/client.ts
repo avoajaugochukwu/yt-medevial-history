@@ -16,13 +16,13 @@ export async function fetchTranscript(videoUrl: string): Promise<TranscriptRespo
   }
 
   const data = await response.json();
-  const bodyData = JSON.parse(data.body);
 
-  if (!bodyData.transcript) {
+  // Lambda function URL returns the body content directly
+  if (!data.transcript) {
     throw new Error('No transcript returned from Lambda');
   }
 
-  return { text: bodyData.transcript };
+  return { text: data.transcript };
 }
 
 export function extractVideoId(url: string): string | null {
