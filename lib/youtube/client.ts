@@ -1,28 +1,28 @@
-import { YoutubeTranscript } from '@danielxceron/youtube-transcript';
-import type { TranscriptSegment } from '@/lib/types';
+const LAMBDA_URL = 'https://bepu4kbnoghbb2kx5tjfi7duom0mofcd.lambda-url.us-west-2.on.aws/';
 
 export interface TranscriptResponse {
-  segments: TranscriptSegment[];
   text: string;
 }
 
 export async function fetchTranscript(videoUrl: string): Promise<TranscriptResponse> {
-  const videoId = extractVideoId(videoUrl);
-  if (!videoId) {
-    throw new Error('Invalid YouTube URL');
+  const response = await fetch(LAMBDA_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ videoUrl }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Lambda request failed: ${response.status}`);
   }
 
-  const transcriptItems = await YoutubeTranscript.fetchTranscript(videoId);
+  const data = await response.json();
+  const bodyData = JSON.parse(data.body);
 
-  const segments: TranscriptSegment[] = transcriptItems.map((item) => ({
-    start: item.offset / 1000, // Convert ms to seconds
-    duration: item.duration / 1000, // Convert ms to seconds
-    text: item.text,
-  }));
+  if (!bodyData.transcript) {
+    throw new Error('No transcript returned from Lambda');
+  }
 
-  const text = segments.map((s) => s.text).join(' ');
-
-  return { segments, text };
+  return { text: bodyData.transcript };
 }
 
 export function extractVideoId(url: string): string | null {

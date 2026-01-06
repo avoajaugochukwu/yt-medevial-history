@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Extraction data is required' }, { status: 400 });
     }
 
-    console.log(`[Repurpose Analyze] Analyzing: "${extraction.metadata.title}"`);
+    console.log(`[Repurpose Analyze] Analyzing script (${extraction.transcript.wordCount} words)`);
 
     const prompt = SCRIPT_ANALYSIS_PROMPT(extraction);
     const response = await generateWithClaude(prompt, SCRIPT_ANALYSIS_SYSTEM, 0.7, 4096);

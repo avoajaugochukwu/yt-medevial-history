@@ -30,9 +30,7 @@ export async function POST(request: NextRequest) {
 
     const extraction = await extractFromYouTube(url);
 
-    console.log(
-      `[Repurpose Extract] Success: "${extraction.metadata.title}" (${extraction.transcript.wordCount} words)`
-    );
+    console.log(`[Repurpose Extract] Success: ${extraction.transcript.wordCount} words`);
 
     return NextResponse.json({
       success: true,

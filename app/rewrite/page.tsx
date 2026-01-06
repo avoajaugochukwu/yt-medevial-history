@@ -22,6 +22,7 @@ import {
   FileText,
   BarChart3,
   Wand2,
+  Type,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import type {
@@ -52,7 +53,7 @@ export default function RewritePage() {
   const [steps, setSteps] = useState<Step[]>([
     {
       number: 1,
-      label: 'Extracting transcript & metadata',
+      label: 'Extracting transcript',
       icon: <Youtube className="h-4 w-4" />,
       status: 'pending',
     },
@@ -68,15 +69,23 @@ export default function RewritePage() {
       icon: <Wand2 className="h-4 w-4" />,
       status: 'pending',
     },
+    {
+      number: 4,
+      label: 'Generating title options',
+      icon: <Type className="h-4 w-4" />,
+      status: 'pending',
+    },
   ]);
 
   // Generated data
   const [extraction, setExtraction] = useState<YouTubeExtraction | null>(null);
   const [analysis, setAnalysis] = useState<ScriptAnalysis | null>(null);
   const [rewrittenScript, setRewrittenScript] = useState<RewrittenScript | null>(null);
+  const [titles, setTitles] = useState<string[]>([]);
 
   // UI state
   const [copied, setCopied] = useState(false);
+  const [copiedTitle, setCopiedTitle] = useState<number | null>(null);
   const [showAnalysis, setShowAnalysis] = useState(true);
   const [showOriginal, setShowOriginal] = useState(false);
 
@@ -101,6 +110,7 @@ export default function RewritePage() {
     setExtraction(null);
     setAnalysis(null);
     setRewrittenScript(null);
+    setTitles([]);
 
     // Initialize session in store
     setRepurposeSession({
@@ -134,7 +144,7 @@ export default function RewritePage() {
       updateRepurposeSession({ extraction: extractedData });
       updateStepStatus(1, 'completed');
 
-      console.log('[Step 1] Extraction complete:', extractedData.metadata.title);
+      console.log('[Step 1] Extraction complete:', extractedData.transcript.wordCount, 'words');
 
       // ============================================================================
       // STEP 2: Analyze Script
@@ -188,8 +198,31 @@ export default function RewritePage() {
 
       console.log('[Step 3] Rewrite complete. Words:', rewrittenResult.wordCount);
 
+      // ============================================================================
+      // STEP 4: Generate Titles
+      // ============================================================================
+      updateStepStatus(4, 'in_progress');
+
+      const titlesResponse = await fetch('/api/repurpose/titles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ script: rewrittenResult.content }),
+      });
+
+      if (!titlesResponse.ok) {
+        const errorData = await titlesResponse.json();
+        throw new Error(errorData.details || errorData.error || 'Title generation failed');
+      }
+
+      const titlesData = await titlesResponse.json();
+      const generatedTitles: string[] = titlesData.titles;
+      setTitles(generatedTitles);
+      updateStepStatus(4, 'completed');
+
+      console.log('[Step 4] Titles generated:', generatedTitles);
+
       setStatus('complete');
-      toast.success('Script rewritten successfully!');
+      toast.success('Script rewritten and titles generated!');
     } catch (error) {
       console.error('Repurpose error:', error);
 
@@ -225,8 +258,16 @@ export default function RewritePage() {
     setExtraction(null);
     setAnalysis(null);
     setRewrittenScript(null);
+    setTitles([]);
     setYoutubeUrl('');
     setRepurposeSession(null);
+  };
+
+  const handleCopyTitle = async (title: string, index: number) => {
+    await navigator.clipboard.writeText(title);
+    setCopiedTitle(index);
+    toast.success('Title copied!');
+    setTimeout(() => setCopiedTitle(null), 2000);
   };
 
   const getStepIcon = (step: Step) => {
@@ -235,12 +276,6 @@ export default function RewritePage() {
       return <Loader2 className="h-5 w-5 text-primary animate-spin" />;
     if (step.status === 'error') return <span className="text-red-600">✗</span>;
     return step.icon;
-  };
-
-  const formatDuration = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   const getScoreColor = (score: number) => {
@@ -289,12 +324,13 @@ export default function RewritePage() {
                   What happens:
                 </h4>
                 <ol className="text-sm text-blue-700 dark:text-blue-300 space-y-1 list-decimal list-inside">
-                  <li>Extract transcript and metadata from the video</li>
+                  <li>Extract transcript from the video</li>
                   <li>Analyze script for hook quality, retention tactics, and structure</li>
                   <li>
                     Rewrite the script with in media res opening, strong hooks, and retention
                     tactics
                   </li>
+                  <li>Generate 3 title options based on the rewritten script</li>
                 </ol>
               </div>
 
@@ -336,38 +372,18 @@ export default function RewritePage() {
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg flex items-center gap-2">
                     <FileText className="h-5 w-5" />
-                    Source Video
+                    Extracted Transcript
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex gap-4">
-                    {extraction.metadata.thumbnailUrl && (
-                      <img
-                        src={extraction.metadata.thumbnailUrl}
-                        alt={extraction.metadata.title}
-                        className="w-32 h-20 object-cover rounded"
-                      />
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-sm truncate">
-                        {extraction.metadata.title}
-                      </h3>
-                      <p className="text-xs text-muted-foreground">
-                        {extraction.metadata.channelName}
-                      </p>
-                      <div className="flex gap-3 mt-2 text-xs">
-                        <span className="bg-muted px-2 py-1 rounded">
-                          {formatDuration(extraction.metadata.duration)}
-                        </span>
-                        <span className="bg-muted px-2 py-1 rounded">
-                          {extraction.transcript.wordCount.toLocaleString()} words
-                        </span>
-                      </div>
-                    </div>
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="bg-muted px-3 py-1.5 rounded text-sm font-medium">
+                      {extraction.transcript.wordCount.toLocaleString()} words
+                    </span>
                   </div>
 
                   {/* Collapsible Original Transcript */}
-                  <div className="mt-4">
+                  <div>
                     <button
                       onClick={() => setShowOriginal(!showOriginal)}
                       className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
@@ -595,6 +611,46 @@ export default function RewritePage() {
                       {rewrittenScript.content}
                     </pre>
                   </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Generated Titles */}
+            {titles.length > 0 && (
+              <Card className="shadow-lg border-border/50">
+                <CardHeader>
+                  <CardTitle className="text-xl flex items-center gap-2">
+                    <Type className="h-5 w-5" />
+                    Title Options
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {titles.map((title, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between gap-3 p-3 bg-muted/50 rounded-lg"
+                    >
+                      <span className="text-sm font-medium flex-1">{title}</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleCopyTitle(title, index)}
+                        className="shrink-0"
+                      >
+                        {copiedTitle === index ? (
+                          <>
+                            <Check className="h-4 w-4 mr-1" />
+                            Copied
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="h-4 w-4 mr-1" />
+                            Copy
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  ))}
                 </CardContent>
               </Card>
             )}

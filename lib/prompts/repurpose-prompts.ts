@@ -10,11 +10,8 @@ export const SCRIPT_ANALYSIS_PROMPT = (extraction: YouTubeExtraction) => `### OB
 
 Analyze the following YouTube script for quality, retention tactics, and adherence to YouTube best practices. Provide actionable feedback for improvement.
 
-### VIDEO CONTEXT
+### SCRIPT CONTEXT
 
-**Title:** ${extraction.metadata.title}
-**Channel:** ${extraction.metadata.channelName}
-**Duration:** ${Math.round(extraction.metadata.duration / 60)} minutes
 **Word Count:** ${extraction.transcript.wordCount} words
 
 ### SCRIPT TO ANALYZE
@@ -98,10 +95,8 @@ export const SCRIPT_REWRITE_PROMPT = (
 
 Rewrite the following YouTube script to maximize engagement and retention. The output must be optimized for Text-to-Speech (TTS) narration.
 
-### ORIGINAL VIDEO CONTEXT
+### ORIGINAL SCRIPT CONTEXT
 
-**Title:** ${extraction.metadata.title}
-**Original Duration:** ${Math.round(extraction.metadata.duration / 60)} minutes
 **Original Word Count:** ${extraction.transcript.wordCount} words
 
 ### TARGET PARAMETERS
@@ -172,3 +167,29 @@ Apply these techniques every 2-3 minutes:
 Return ONLY the rewritten script as plain text paragraphs. No JSON, no metadata, no commentary. Just the TTS-ready script.
 
 The script should be approximately 3,750 words (25 minutes at 150 wpm).`;
+
+// ============================================================================
+// PHASE 3: TITLE GENERATION PROMPT
+// ============================================================================
+
+export const TITLE_GENERATION_SYSTEM = `You are an expert YouTube title writer specializing in clickable, curiosity-driven titles that maximize CTR while accurately representing the content.`;
+
+export const TITLE_GENERATION_PROMPT = (script: string) => `Generate 3 YouTube title options for the following script.
+
+### REQUIREMENTS
+- Each title should be 50-70 characters
+- Use curiosity gaps, numbers, or power words
+- Avoid clickbait that doesn't deliver on the content
+- Make each title distinctly different in approach (e.g., question-based, statement, number-focused)
+- Titles should accurately reflect the script content
+
+### SCRIPT
+<script>
+${script.substring(0, 5000)}
+</script>
+
+### OUTPUT FORMAT
+
+Return a JSON array of exactly 3 title strings (and ONLY valid JSON, no markdown code blocks):
+
+["Title Option 1", "Title Option 2", "Title Option 3"]`;

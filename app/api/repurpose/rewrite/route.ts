@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`[Repurpose Rewrite] Rewriting: "${extraction.metadata.title}"`);
+    console.log(`[Repurpose Rewrite] Rewriting script (${extraction.transcript.wordCount} words)`);
 
     const prompt = SCRIPT_REWRITE_PROMPT(extraction, analysis);
     // Use higher max tokens for 25-minute script (~3750 words * 1.3 tokens/word)

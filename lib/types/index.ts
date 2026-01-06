@@ -356,33 +356,13 @@ export interface WarRoomStyleConstraints {
 // YOUTUBE REPURPOSING TYPES
 // ============================================================================
 
-export interface YouTubeVideoMetadata {
-  videoId: string;
-  title: string;
-  description: string;
-  duration: number; // seconds
-  channelName: string;
-  publishedAt: string;
-  thumbnailUrl?: string;
-}
-
-export interface TranscriptSegment {
-  start: number; // seconds
-  duration: number; // seconds
-  text: string;
-}
-
 export interface YouTubeTranscript {
-  text: string; // Full transcript text
-  segments?: TranscriptSegment[]; // Optional timestamped segments
-  language: string;
+  text: string;
   wordCount: number;
 }
 
 export interface YouTubeExtraction {
-  metadata: YouTubeVideoMetadata;
   transcript: YouTubeTranscript;
-  extractedAt: Date;
 }
 
 // Phase 1: Analysis output
