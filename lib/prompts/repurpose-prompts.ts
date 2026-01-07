@@ -162,6 +162,18 @@ Apply these techniques every 2-3 minutes:
 - Write for the EAR, not the eye
 - Use natural spoken language, contractions, and conversational flow
 
+**6. WRITING STYLE (CRITICAL)**
+- NO flowery or purple prose - be direct and concrete
+- NO clichés or overused phrases like:
+  - "What comes next will shock you"
+  - "In a world of..."
+  - "Little did they know..."
+  - "But fate had other plans"
+- NO repetitive sentence structures - avoid starting multiple consecutive sentences the same way
+  - BAD: "To teach him. To build him. To guide him."
+  - GOOD: Combine into a single sentence or vary the structure
+- Prefer concrete, specific language over vague dramatic statements
+
 ### OUTPUT
 
 Return ONLY the rewritten script as plain text paragraphs. No JSON, no metadata, no commentary. Just the TTS-ready script.
