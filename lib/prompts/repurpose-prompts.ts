@@ -134,10 +134,11 @@ ${extraction.transcript.text}
 - The first sentence should create instant curiosity
 
 **2. VERY STRONG HOOK (First 60 seconds / ~150 words)**
-- Must include: a surprising fact, a bold claim, or a dramatic moment
-- Must create a curiosity gap (unanswered question)
-- Must establish stakes (why should they care?)
-- Must make a promise about what they'll learn/experience
+- **Identify the Subversion:** Scan the original script to find the specific moment where expectation was subverted
+- **Juxtaposition Requirement:** Contrast "The Invincible" (empire/figure at peak power) against "The Ruin" (the unexpected element that destroyed them)
+- **DO NOT start with "In this video."** Start with the moment of maximum tragedy or shock
+- **Use the "Impossible" Keyword:** Frame the central conflict using "Impossible" or "Defies belief"
+- **Engagement Bridge:** End the hook with: "If you want to see how [Giant] fell to [Pebble], smash that subscribe button." (BEFORE intro animation/music)
 
 **3. HIGH RETENTION TACTICS THROUGHOUT**
 Apply these techniques every 2-3 minutes:
