@@ -109,9 +109,20 @@ export interface MapData {
 // Segment type for variable scene timing
 export type SceneSegment = 'hook' | 'setup' | 'core_content' | 'deep_dive' | 'long_tail';
 
+// Cinematic shot types for Director Engine
+export type CinematicShotType =
+  | 'Establishing Wide'
+  | 'Medium Action'
+  | 'Close-Up'
+  | 'Extreme Close-Up'
+  | 'High Angle'
+  | 'Low Angle'
+  | 'POV';
+
 export interface Scene {
   scene_number: number;
   scene_type?: 'visual' | 'map';
+  shot_type?: CinematicShotType;
   script_snippet: string;
   visual_prompt: string;
   historical_context?: string;

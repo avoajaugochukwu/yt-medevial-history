@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useSessionStore } from '@/lib/store';
-import { StoryboardScene } from '@/lib/types';
+import { StoryboardScene, CinematicShotType } from '@/lib/types';
 import {
   Dialog,
   DialogContent,
@@ -13,6 +13,13 @@ import {
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { LoadingSpinner } from '@/components/common/loading-spinner';
 import {
   RefreshCw,
@@ -21,7 +28,8 @@ import {
   Save,
   X,
   Image as ImageIcon,
-  Map
+  Map,
+  Camera,
 } from 'lucide-react';
 
 interface SceneEditorProps {
@@ -30,6 +38,16 @@ interface SceneEditorProps {
   onClose: () => void;
   onNavigate: (direction: 'prev' | 'next') => void;
 }
+
+const SHOT_TYPES: CinematicShotType[] = [
+  'Establishing Wide',
+  'Medium Action',
+  'Close-Up',
+  'Extreme Close-Up',
+  'High Angle',
+  'Low Angle',
+  'POV',
+];
 
 export function SceneEditor({ scene, isOpen, onClose, onNavigate }: SceneEditorProps) {
   const {
@@ -40,10 +58,12 @@ export function SceneEditor({ scene, isOpen, onClose, onNavigate }: SceneEditorP
   const [editedPrompt, setEditedPrompt] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [editedShotType, setEditedShotType] = useState<CinematicShotType | undefined>(undefined);
 
   React.useEffect(() => {
     if (scene) {
       setEditedPrompt(scene.visual_prompt);
+      setEditedShotType(scene.shot_type);
       setIsEditing(false);
     }
   }, [scene]);
@@ -103,6 +123,51 @@ export function SceneEditor({ scene, isOpen, onClose, onNavigate }: SceneEditorP
         visual_prompt: editedPrompt,
       });
       handleRegenerate();
+    }
+  };
+
+  const handleShotTypeChange = async (newShotType: CinematicShotType) => {
+    if (!scene) return;
+
+    setEditedShotType(newShotType);
+    updateStoryboardScene(scene.scene_number, { shot_type: newShotType });
+
+    // Trigger regeneration with new shot type
+    setIsRegenerating(true);
+    updateStoryboardScene(scene.scene_number, {
+      is_regenerating: true,
+      generation_status: 'generating',
+    });
+
+    try {
+      const response = await fetch('/api/generate/scene-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          scene: { ...scene, shot_type: newShotType },
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to regenerate');
+
+      const { image_url, prompt_used } = await response.json();
+
+      updateStoryboardScene(scene.scene_number, {
+        image_url,
+        visual_prompt: prompt_used,
+        shot_type: newShotType,
+        generation_status: 'completed',
+        is_regenerating: false,
+      });
+    } catch (error) {
+      console.error('Shot type change error:', error);
+      updateStoryboardScene(scene.scene_number, {
+        generation_status: 'error',
+        error_message: 'Failed to regenerate with new shot type',
+        is_regenerating: false,
+      });
+    } finally {
+      setIsRegenerating(false);
     }
   };
 
@@ -208,6 +273,35 @@ export function SceneEditor({ scene, isOpen, onClose, onNavigate }: SceneEditorP
                   </div>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* Shot Type Selector (for visual scenes only) */}
+          {scene.scene_type !== 'map' && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium flex items-center gap-2">
+                <Camera className="h-4 w-4" />
+                Shot Type:
+              </label>
+              <Select
+                value={editedShotType || scene.shot_type || ''}
+                onValueChange={(value) => handleShotTypeChange(value as CinematicShotType)}
+                disabled={isRegenerating}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select shot type..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {SHOT_TYPES.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {type}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-gray-500">
+                Changing shot type will regenerate the image with the new framing.
+              </p>
             </div>
           )}
 

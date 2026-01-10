@@ -18,6 +18,7 @@ import {
   Edit,
   Map,
   Loader2,
+  Camera,
 } from 'lucide-react';
 
 // Batch size for concurrent image generation
@@ -77,6 +78,12 @@ function SceneCard({
               <Badge variant="secondary" className="flex items-center gap-1">
                 <Map className="h-3 w-3" />
                 Map
+              </Badge>
+            )}
+            {scene.shot_type && scene.scene_type !== 'map' && (
+              <Badge variant="outline" className="flex items-center gap-1 text-xs">
+                <Camera className="h-3 w-3" />
+                {scene.shot_type}
               </Badge>
             )}
           </div>

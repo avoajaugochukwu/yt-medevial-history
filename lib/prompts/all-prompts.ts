@@ -624,6 +624,51 @@ ${timingPlan.promptGuidance}
 
 ${script}
 
+### DIRECTOR RULES (CINEMATIC SHOT SELECTION)
+
+You MUST analyze the script content and assign the appropriate "shot_type" to each scene using these rules:
+
+**1. LIST RULE (Montage Detection):**
+When the script lists multiple items or events in sequence (e.g., "They conquered China, smashed Persia, and burned Baghdad"), you MUST break these into separate short scenes (1.0-2.0 seconds each) with "Medium Action" shot type. Each list item = 1 distinct scene.
+
+**2. NOUN RULE (Detail Inserts):**
+When the script mentions a specific physical object, weapon, or artifact (e.g., "composite bows", "the Emperor's seal", "Greek fire", "iron boots"), create an "Extreme Close-Up" scene focused on that object. Do not show the whole person - focus on the object itself. Duration: 2-3 seconds.
+
+**3. INTRODUCTION RULE (Hero Shots):**
+When a major historical figure is first introduced by name in the narrative, use either:
+- "Low Angle" - for imposing, powerful, dominant figures
+- "Medium Action" - for dynamic introductions with movement
+
+**4. SCALE RULE (Establishing Context):**
+When the script mentions:
+- Specific dates (e.g., "In 1258 AD...")
+- New geographic locations (e.g., "The city of Baghdad...")
+- Army sizes or territorial scope (e.g., "200,000 soldiers...")
+Use "Establishing Wide" shot type to set the geographic/temporal context.
+
+**5. EMOTION RULE (Psychological Moments):**
+For scenes describing:
+- Facial expressions or emotions
+- Decision-making moments
+- Internal conflict or contemplation
+Use "Close-Up" shot type to capture the human element.
+
+**6. CHAOS RULE (Battle Action):**
+For active battle sequences, cavalry charges, or moments of destruction:
+- "High Angle" - for showing tactical formations, chaos from above, god's eye view
+- "Medium Action" - for ground-level combat energy and action
+
+**7. WITNESS RULE (Victim Perspective):**
+When describing the experience of those affected (civilians, defeated soldiers, refugees, witnesses):
+Use "POV" shot type to immerse the viewer in that perspective.
+
+### VISUAL PROMPT FORMULA
+
+Each visual_prompt MUST follow this exact structure:
+[Shot Type] of [Subject] [Action]. [Lighting/Atmosphere]. [Historical Details].
+
+Example: "Extreme Close-Up of a Mongolian composite bow, sinew and horn layers visible, being drawn by scarred weathered hands. Dusty golden hour light filtering through tent canvas. Accurate 13th-century construction with bone nocks and lacquered wood."
+
 ### SCENE REQUIREMENTS
 
 **Selection Criteria:**
@@ -666,16 +711,17 @@ Each scene description must be detailed enough for an AI image generator to crea
 ### OUTPUT FORMAT
 
 Return a JSON array of scenes (ONLY valid JSON, no markdown code blocks).
-**EVERY scene MUST include "segment" and "suggested_duration" fields.**
+**EVERY scene MUST include "segment", "suggested_duration", and "shot_type" fields.**
 
 [
   {
     "scene_number": 1,
     "scene_type": "map",
+    "shot_type": "Establishing Wide",
     "segment": "hook",
     "suggested_duration": 2.0,
     "script_snippet": "January 10th, 49 BC. The Rubicon River.",
-    "visual_prompt": "Historical cartographic map of Roman Italy in 49 BC. Shows the Italian peninsula with Cisalpine Gaul beyond the Rubicon River. Political boundaries clearly marked. The Rubicon River prominently labeled. Major cities indicated: Rome, Ravenna. Aged parchment texture, ornate compass rose. Muted earth tones: sepia, sage green. 18th-century cartographic art style, museum quality.",
+    "visual_prompt": "Establishing Wide of Roman Italy in 49 BC. Historical cartographic map showing the Italian peninsula with Cisalpine Gaul beyond the Rubicon River. Political boundaries clearly marked. The Rubicon River prominently labeled. Major cities indicated: Rome, Ravenna. Aged parchment texture, ornate compass rose. Muted earth tones: sepia, sage green. 18th-century cartographic art style, museum quality.",
     "historical_context": "The Rubicon River marked the legal boundary between Cisalpine Gaul and Italia.",
     "map_data": {
       "location": "Roman Italy",
@@ -687,19 +733,21 @@ Return a JSON array of scenes (ONLY valid JSON, no markdown code blocks).
   {
     "scene_number": 2,
     "scene_type": "visual",
+    "shot_type": "Medium Action",
     "segment": "hook",
     "suggested_duration": 2.0,
     "script_snippet": "A lone general stares across the water.",
-    "visual_prompt": "Julius Caesar on horseback at the Rubicon River at dawn, Roman general in red cloak and bronze cuirass. Misty morning, golden sunlight breaking through. Dramatic chiaroscuro lighting, heroic composition.",
+    "visual_prompt": "Medium Action of Julius Caesar on horseback at the Rubicon River at dawn. Roman general in red cloak and bronze cuirass, reins gripped tight. Misty morning, golden sunlight breaking through. Dramatic chiaroscuro lighting, heroic composition.",
     "historical_context": "Caesar's decision to cross precipitated the Roman Civil War"
   },
   {
     "scene_number": 15,
     "scene_type": "visual",
+    "shot_type": "High Angle",
     "segment": "core_content",
     "suggested_duration": 8.0,
     "script_snippet": "The clash of bronze echoes across the valley as Roman and Carthaginian forces collide in what would become history's most devastating tactical maneuver.",
-    "visual_prompt": "Aerial view of the Battle of Cannae, 216 BC. Carthaginian forces in crescent formation enveloping Roman legions. Mass of soldiers in bronze armor, dust clouds rising. Weapons catching sunlight. Dynamic movement, theatrical lighting, grand scale.",
+    "visual_prompt": "High Angle of the Battle of Cannae, 216 BC. Carthaginian forces in crescent formation enveloping Roman legions from above. Mass of soldiers in bronze armor, dust clouds rising. Weapons catching sunlight. Dynamic tactical movement visible, theatrical lighting, grand scale.",
     "historical_context": "Hannibal's double envelopment at Cannae is considered one of history's most perfect tactical victories"
   }
 ]
@@ -707,7 +755,9 @@ Return a JSON array of scenes (ONLY valid JSON, no markdown code blocks).
 ### CONSTRAINTS
 
 - Generate exactly ${timingPlan.totalScenes} scenes distributed across segments as specified above
-- **EVERY scene MUST have "segment" and "suggested_duration" fields**
+- **EVERY scene MUST have "segment", "suggested_duration", and "shot_type" fields**
+- Apply Director Rules to determine the appropriate shot_type for each scene
+- Each visual_prompt MUST follow the formula: [Shot Type] of [Subject] [Action]. [Lighting]. [Details].
 - Each visual_prompt must be 50-100 words (detailed enough for quality image generation)
 - Script_snippet length varies by segment:
   - HOOK: 1-2 sentences maximum (rapid cuts)

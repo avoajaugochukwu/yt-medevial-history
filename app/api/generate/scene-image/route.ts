@@ -37,14 +37,18 @@ export async function POST(request: NextRequest) {
     const basePrompt = scene.visual_prompt || 'Historical scene';
     const isMapScene = scene.scene_type === 'map';
 
+    // Inject shot type prefix for visual scenes (not maps)
+    const shotTypePrefix = !isMapScene && scene.shot_type ? `${scene.shot_type}: ` : '';
+
     // Inject appropriate style suffix: historical map for maps, AI-generated or default style for visual scenes
     const styleSuffix = isMapScene ? HISTORICAL_MAP_STYLE_SUFFIX : generateStyleSuffix(artStyle);
     const negativePrompt = isMapScene ? NEGATIVE_PROMPT_MAPS : NEGATIVE_PROMPT_HISTORICAL;
-    const styledPrompt = `${basePrompt}${styleSuffix}`;
+    const styledPrompt = `${shotTypePrefix}${basePrompt}${styleSuffix}`;
 
     const sceneTypeLabel = isMapScene ? 'MAP' : 'VISUAL';
     const styleDescription = artStyle ? 'AI-generated era-appropriate' : 'default oil painting';
     console.log(`[Scene Image] Generating ${sceneTypeLabel} image for scene ${scene.scene_number}`);
+    console.log(`[Scene Image] Shot type: ${scene.shot_type || 'none'}`);
     console.log(`[Scene Image] Using ${styleDescription} style`);
     console.log(`[Scene Image] Prompt length: ${styledPrompt.length} characters`);
 
