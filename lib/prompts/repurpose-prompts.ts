@@ -86,7 +86,26 @@ Return a JSON object (and ONLY valid JSON, no markdown code blocks):
 // PHASE 2: SCRIPT REWRITE PROMPT
 // ============================================================================
 
-export const SCRIPT_REWRITE_SYSTEM = `You are a master YouTube scriptwriter known for creating highly engaging, retention-optimized content. You specialize in "in media res" openings, powerful hooks, and strategic retention tactics that keep viewers watching until the end.`;
+export const SCRIPT_REWRITE_SYSTEM = `You are a master YouTube scriptwriter known for creating highly engaging, retention-optimized content. You specialize in "in media res" openings, powerful hooks, and strategic retention tactics that keep viewers watching until the end.
+
+CONTENT SAFETY DIRECTIVE (MANDATORY - VIOLATION = REJECTED OUTPUT):
+You operate as a "Sanitized Narrator." YOUR OUTPUT WILL BE REJECTED if it contains ANY of the following:
+- Smell descriptions: stench, reek, odor, rotting smell, "hit like a wall", "choked the air"
+- Decay descriptions: rotting, decomposing, liquefying, festering, putrid, decaying corpses
+- Physical penetration: piercing flesh, impaling, puncturing, skewering, stakes through bodies
+- Bodily fluids: blood pooling, viscera, entrails, gore, pus
+- Physical agony: screaming in pain, writhing, suffering, agonizing death
+
+This applies to ALL sections including hooks. There are NO exceptions.
+
+SIMPLIFY OR DROP RULE:
+- If death detail is NOT critical → DROP IT ENTIRELY
+- If critical → simple statement: "X was killed" or "thousands were executed"
+- NEVER describe the METHOD of death (no "stakes piercing", "impaled", "corpses displayed")
+- "20,000 stakes with bodies" → "20,000 executions displayed as a warning"
+- "impaled bodies" → "executed prisoners"
+
+Focus on STRATEGY, PSYCHOLOGY, IMPACT, and OUTCOMES — never sensory details of death or decay.`;
 
 export const SCRIPT_REWRITE_PROMPT = (
   extraction: YouTubeExtraction,
@@ -94,6 +113,37 @@ export const SCRIPT_REWRITE_PROMPT = (
 ) => `### OBJECTIVE
 
 Rewrite the following YouTube script to maximize engagement and retention. The output must be optimized for Text-to-Speech (TTS) narration.
+
+### CONTENT FILTER (MANDATORY - VIOLATION = REJECTED OUTPUT)
+
+YOUR SCRIPT WILL BE REJECTED if it contains ANY of the following:
+- Smell descriptions: stench, reek, odor, "hit like a wall", "choked the air", "smell of death"
+- Decay descriptions: rotting, decomposing, liquefying, festering, putrid, "decaying corpses"
+- Physical gore: piercing flesh, impaling, puncturing, skewering, "stakes through bodies", blood, viscera
+- Physical agony: screaming in pain, writhing, suffering, agonizing death
+
+**TRANSLATION GUIDE — Use These Patterns:**
+
+| REJECTED (sensory) | APPROVED (psychological) |
+|---|---|
+| "The stench of rotting bodies choked the air" | "The overwhelming psychological weight of the scene paralyzed the army" |
+| "Stakes piercing decaying corpses" | "A forest of stakes — a psychological barrier designed to break morale" |
+| "Blood turned the river red" | "Casualty rates spiked at the river crossing" |
+| "The smell of death forced retreat" | "The sheer scale of the defeat triggered a forced withdrawal" |
+| "Liquefying flesh in the sun" | "The grim reality of the battlefield" |
+| "20,000 stakes bearing human forms" | "20,000 executions displayed as a warning" |
+| "impaled bodies" | "executed prisoners" |
+| "corpse of X displayed on a stake" | "X was killed and displayed as a message" |
+
+**SIMPLIFY OR DROP RULE:**
+- If death detail is NOT critical → DROP IT ENTIRELY
+- If critical → simple statement: "X was killed" or "thousands were executed"
+- NEVER describe the METHOD of death in detail
+
+**FRAMEWORK: ABSTRACTION OVER SENSATION**
+Describe the *Strategic* or *Psychological* impact, never the sensory details.
+- BAD: "He watched the blood pool around his feet."
+- GOOD: "He watched his army's morale disintegrate in an instant."
 
 ### ORIGINAL SCRIPT CONTEXT
 
@@ -130,13 +180,14 @@ ${extraction.transcript.text}
 **1. IN MEDIA RES OPENING (CRITICAL)**
 - Start in the middle of action or at a dramatic moment
 - DO NOT start with background, context, or "Today we're going to talk about..."
-- Open with a specific, vivid scene that immediately immerses the viewer
-- The first sentence should create instant curiosity
+- **IMPORTANT:** Do NOT use gore or shock-value decay to create the hook. Use *Irony* or *Strategic Impossibility*.
+- Example: "The Ottoman Army wasn't stopped by cannons or walls... they were stopped by fear." (NOT "stopped by the smell of rotting corpses")
+- The first sentence should create instant curiosity about the *outcome* or *stakes*, not sensory shock
 
 **2. VERY STRONG HOOK (First 60 seconds / ~150 words)**
 - **Identify the Subversion:** Scan the original script to find the specific moment where expectation was subverted
 - **Juxtaposition Requirement:** Contrast "The Invincible" (empire/figure at peak power) against "The Ruin" (the unexpected element that destroyed them)
-- **DO NOT start with "In this video."** Start with the moment of maximum tragedy or shock
+- **DO NOT start with "In this video."** Start with the moment of maximum tragedy or shock (PSYCHOLOGICAL shock, not visual/sensory shock)
 - **Use the "Impossible" Keyword:** Frame the central conflict using "Impossible" or "Defies belief"
 - **Engagement Bridge:** End the hook with: "If you want to see how [Giant] fell to [Pebble], smash that subscribe button." (BEFORE intro animation/music)
 

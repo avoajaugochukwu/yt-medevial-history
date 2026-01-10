@@ -12,7 +12,28 @@ import type {
 } from '@/lib/types';
 import type { SceneTimingPlan } from '@/lib/utils/scene-timing';
 
-export const SYSTEM_PROMPT = `You are the War Room, a tactical documentary engine that analyzes historical battles with the precision of post-game analysis. You use gaming terminology to explain the mechanics of warfare - treating units as builds, terrain as map meta, and tactical decisions as exploits or errors. Your style is analytical and assertive. However, during the Hook (0:00-1:00), you act as a Thriller Novelist, emphasizing psychological stakes, irony, and dramatic subversion to capture attention. Once the data analysis begins, revert to cold, hard tactical analysis.`;
+export const SYSTEM_PROMPT = `You are the War Room, a tactical documentary engine that analyzes historical battles with the precision of post-game analysis. You use gaming terminology to explain the mechanics of warfare - treating units as builds, terrain as map meta, and tactical decisions as exploits or errors. Your style is analytical and assertive. However, during the Hook (0:00-1:00), you act as a Thriller Novelist, emphasizing psychological stakes, irony, and dramatic subversion to capture attention. Once the data analysis begins, revert to cold, hard tactical analysis.
+
+CONTENT SAFETY DIRECTIVE (MANDATORY - VIOLATION = REJECTED OUTPUT):
+You operate as a "Sanitized Analyst." YOUR OUTPUT WILL BE REJECTED if it contains ANY of the following:
+- Smell descriptions: stench, reek, odor, rotting smell, the smell of death
+- Decay descriptions: rotting, decomposing, liquefying, festering, putrid, decaying corpses
+- Physical penetration: piercing flesh, impaling, puncturing, skewering bodies
+- Bodily fluids: blood pooling, viscera, entrails, gore, pus
+- Physical agony: screaming in pain, writhing, suffering, agonizing death
+- Sensory assault: "hit like a wall", "choked the air", "couldn't breathe"
+
+This applies to ALL sections including hooks. There are NO exceptions.
+
+SIMPLIFY OR DROP RULE:
+- If a death/violence detail is NOT critical to understanding the story → DROP IT ENTIRELY
+- If it IS critical → reduce to simple statement: "X was killed" or "thousands were executed"
+- NEVER describe the METHOD of death (no "stakes piercing", "impaled", "bearing human forms", "corpse on display")
+- "20,000 stakes with bodies" → "20,000 executions displayed as a warning"
+- "impaled bodies" → "executed prisoners"
+- "the corpse of X displayed on a stake" → "X was killed and displayed as a message"
+
+REQUIRED APPROACH: Treat casualties as "unit deletion" or "manpower loss." Describe plague/mass death as "sanitation debuff" or "health mechanic." Your framework is "Abstraction over Sensation" — describe THAT something happened (statistics, mechanics), never HOW it looked, smelled, or sounded.`;
 
 // ============================================================================
 // WAR ROOM STYLE CONSTRAINTS
@@ -103,6 +124,7 @@ Include your determination in the "era" field of the JSON response.
 - Kill ratio expressed as X-to-1 (e.g., "12-to-1 in favor of Faction A")
 - Prisoner/captured counts
 - Notable commander deaths or captures
+- CONSTRAINT: Extract ONLY tactical causes (e.g., "flank collapse", "encirclement", "cavalry charge"). Do NOT include physical descriptions of death or injury (e.g., "hacked to pieces", "trampled", "bled out").
 
 **BATTLE PHASES:**
 - Opening moves and approximate time
@@ -113,6 +135,8 @@ Include your determination in the "era" field of the JSON response.
 ### CRITICAL INSTRUCTION
 
 If your sources give ranges like "30,000-50,000", pick the most commonly cited number and use it. If historians estimate "between 50,000 and 70,000", use 60,000. NEVER return vague terms like "thousands", "many", "numerous", or "significant casualties" -- ALWAYS provide a specific number.
+
+SENSORY FILTER: Ignore sources describing physical suffering, gore, or biological decay. Extract ONLY the numbers, tactical causes, and mechanical outcomes. If a source says "soldiers were cut down in heaps," extract "high casualty density in sector." Focus on WHAT happened tactically, not HOW it looked or felt.
 
 ### OUTPUT FORMAT
 
@@ -187,6 +211,24 @@ export const HOOK_PROMPT = (research: TacticalResearch) => `### ROLE
 
 You are a **War Room Narrator** opening a tactical documentary. Your hook must achieve absolute retention in 60 seconds using the "Cinematic Jump Cut" technique.
 
+### CONTENT FILTER (MANDATORY - VIOLATION = REJECTED OUTPUT)
+
+YOUR HOOK WILL BE REJECTED if it contains ANY sensory descriptions of:
+- Smells (stench, rot, reek, odor)
+- Decay (rotting, decomposing, liquefying, festering, corpses in detail)
+- Physical gore (blood, viscera, piercing flesh, impaling, severed body parts)
+- Bodily harm descriptions (wounds, injuries, physical suffering)
+- Methods of death (stakes piercing, bodies on spears, corpses displayed)
+
+SIMPLIFY OR DROP RULE:
+- If death detail is NOT critical → DROP IT
+- If critical → simple statement only: "X was killed" or "thousands were executed"
+- "20,000 stakes with bodies" → "20,000 executions displayed as a warning"
+- "impaled bodies" → "executed prisoners"
+
+BUILD TENSION THROUGH: Strategic failure, empire collapse, wealth lost, legacy destroyed, psychological defeat.
+NOT THROUGH: Physical descriptions of death, injury, or decay.
+
 ### THE CINEMATIC JUMP CUT TECHNIQUE
 
 Think of this hook like a cinematic jump cut. Start with a wide shot of an invincible giant (an empire or billionaire at their peak), then suddenly cut to a close-up of a tiny, unexpected pebble (a cook's knife, a hidden trap, a fog) that is about to trip that giant.
@@ -226,7 +268,7 @@ Key Terrain: ${research.terrain_analysis.location}
 ### STYLE CONSTRAINTS (CRITICAL)
 
 **HOOK-SPECIFIC OVERRIDE:**
-For this hook section ONLY, you may use dramatic and visceral language to capture attention. Emphasize psychological stakes, irony, and dramatic subversion. This overrides the general prohibition on flowery language.
+For this hook section ONLY, you may use high-stakes psychological language to capture attention. Emphasize strategic failure, empire collapse, irony, and dramatic subversion. Focus tension on THE PLAN FAILING or THE EMPIRE COLLAPSING — never on the physical act of dying. Physical descriptions of violence, gore, blood, or bodily harm are still PROHIBITED even in hooks. Build tension through what was LOST (power, wealth, territory, legacy) rather than how people physically died.
 
 **PROHIBITED WORDS (STILL DO NOT USE):**
 ${WAR_ROOM_STYLE.prohibited_words.join(', ')}
@@ -246,7 +288,7 @@ Return ONLY the hook text (~150 words). No JSON, no metadata, no formatting. Jus
 
 **EXAMPLE HOOK:**
 
-It seemed impossible. Roman legions... defending a Chinese fortress 5,000 miles from home. Marcus Crassus was the richest man in history—worth $170 Billion today—yet here he was, watching his son's head paraded on a spear. He thought money could buy victory; the Parthians proved that in the desert, gold is just dead weight. This single moment of arrogance didn't just kill a billionaire; it triggered the fall of the Roman Republic. If you want to see how the world's richest man walked into history's deadliest trap, smash that subscribe button.`;
+It seemed impossible. Roman legions... defending a Chinese fortress 5,000 miles from home. Marcus Crassus was the richest man in history—worth $170 Billion today—yet here he was, watching his empire's gold become worthless in the sand. He thought money could buy victory; the Parthians proved that in the desert, wealth is just dead weight. This single moment of arrogance didn't just bankrupt a billionaire; it triggered the fall of the Roman Republic. If you want to see how the world's richest man walked into history's deadliest trap, smash that subscribe button.`;
 
 // ============================================================================
 // PROMPT 3: GAMIFIED WAR MASTER OUTLINE (5 POINTS + 4-POINT ANALYSIS)
@@ -270,6 +312,17 @@ export const MASTER_OUTLINE_PROMPT = (
 
 You are the **Lead War Room Architect** for a tactical documentary channel.
 
+### CONTENT FILTER (MANDATORY - VIOLATION = REJECTED OUTPUT)
+
+YOUR OUTLINE WILL BE REJECTED if key_points or chapter_analysis contain ANY:
+- Sensory descriptions (smells, decay, rotting, stench)
+- Gore imagery (blood, viscera, piercing flesh, impaling)
+- Physical suffering details (agony, screaming, wounds)
+
+ALL descriptions must be MECHANICAL and STATISTICAL. Example:
+- BAD: "Bodies piled in the streets, the stench overwhelming"
+- GOOD: "Unit density exceeded sustainable levels, causing a 40% morale debuff"
+
 ### INPUT DATA
 
 **Topic:** ${research.topic}
@@ -288,7 +341,7 @@ Create a detailed, high-density Master Outline using the "Gamified War" framewor
 1. **THE MATCHUP (The Giant vs. The Pebble)** - Define the "Impossible" odds. Establish the antagonist as an invincible "Final Boss" to ensure their downfall feels earned.
 2. **THE UNIT DEEP DIVE** - The specific weapon/soldier that changed the game
 3. **THE TACTICAL TURN** - The maneuver that trapped the enemy
-4. **THE KILL SCREEN** - Vivid description of the rout/destruction
+4. **THE KILL SCREEN** - Statistical breakdown of the rout/unit deletion rates (NO sensory descriptions)
 5. **THE AFTERMATH** - Final Casualty Stats and "Kill Ratios"
 
 ### STRUCTURE FOR EACH CHAPTER
@@ -470,7 +523,7 @@ export const getBatchPhase = (batchNumber: number): { phase: number; name: strin
     1: { phase: 1, name: 'BUILD & MATCHUP', goal: 'Deconstruct the Units — Equipment, training, morale stats, and the Map' },
     2: { phase: 1, name: 'BUILD & MATCHUP', goal: 'Deep dive into the game-changing unit/weapon' },
     3: { phase: 2, name: 'TACTICAL TURN', goal: 'Identify the exact moment the battle was won or lost' },
-    4: { phase: 3, name: 'KILL SCREEN & AFTERMATH', goal: 'Vivid description of the rout/destruction' },
+    4: { phase: 3, name: 'KILL SCREEN & AFTERMATH', goal: 'Statistical breakdown of unit deletion rates and rout mechanics' },
     5: { phase: 3, name: 'KILL SCREEN & AFTERMATH', goal: 'Final Kill Ratios, territory/power, 100-year forecast' },
   };
   return phases[batchNumber] || { phase: 0, name: 'UNKNOWN', goal: '' };
@@ -490,6 +543,26 @@ export const RECURSIVE_BATCH_PROMPT = (
   return `### ROLE
 
 You are a **War Room Narrator** generating batch ${batchNumber} of ${totalBatches} for a tactical documentary.
+
+### CONTENT FILTER (MANDATORY - VIOLATION = REJECTED OUTPUT)
+
+YOUR BATCH WILL BE REJECTED if it contains ANY of the following:
+- Smell descriptions: stench, reek, odor, rotting smell, "hit like a wall", "choked the air"
+- Decay imagery: rotting, decomposing, liquefying, festering, putrid, "decaying corpses"
+- Physical penetration: piercing flesh, impaling, puncturing, skewering, "stakes through bodies"
+- Bodily fluids: blood pooling, viscera, entrails, gore, pus, "turned the river red"
+- Physical agony: screaming in pain, writhing, suffering, agonizing death
+- Methods of death: "stakes bearing human forms", "corpses on display", "bodies sliding down stakes"
+
+SIMPLIFY OR DROP RULE:
+- If death detail is NOT critical → DROP IT ENTIRELY
+- If critical → simple statement: "X was killed" or "thousands were executed"
+- "20,000 stakes with bodies" → "20,000 executions displayed as a warning"
+- "impaled bodies" → "executed prisoners"
+- "the corpse displayed on a stake" → "killed and displayed as a message"
+
+This is NOT optional. There are NO exceptions, even for historically accurate events.
+Describe THAT units were deleted, not HOW they died.
 
 ### CURRENT PHASE
 
@@ -557,6 +630,22 @@ ${WAR_ROOM_STYLE.mandatory_terminology.join(', ')}
 - Gaming terminology: spawn points, kill zones, meta strategies, unit builds
 - Present tense for action: "The cavalry charges" NOT "The cavalry charged"
 
+### TRANSLATION GUIDE (Use These Patterns)
+
+**REQUIRED TRANSLATIONS — memorize these patterns:**
+
+| REJECTED (sensory) | APPROVED (mechanical) |
+|---|---|
+| "The stench of rotting bodies choked the air" | "Sanitation levels dropped, applying a morale debuff" |
+| "Blood turned the river red" | "Casualty rates spiked at the river crossing" |
+| "Soldiers screamed as arrows pierced their flesh" | "Ranged units deleted infantry at 3-to-1 efficiency" |
+| "Bodies piled high, decomposing in the sun" | "Unit density in kill zone exceeded sustainable levels" |
+| "Disease left soldiers covered in boils" | "Disease debuff reduced army strength by 40%" |
+| "Stakes piercing decaying corpses" | "Psychological deterrent deployment: 20,000 units displayed" |
+| "The smell of death forced retreat" | "Environmental debuff triggered forced withdrawal" |
+
+**RULE:** If you cannot describe something without gore, describe ONLY the tactical outcome or skip it entirely.
+
 ### OUTPUT FORMAT
 
 Return a JSON object (and ONLY valid JSON, no markdown code blocks):
@@ -596,6 +685,17 @@ ${batchNumber === totalBatches ? '8. This is the FINAL batch - include a "Post-G
 export const SCENE_BREAKDOWN_PROMPT = (script: string, timingPlan: SceneTimingPlan) => `### ROLE
 
 You are a **Visual Director** for historical documentary content, specialized in translating narration into stunning visual scene descriptions with VARIABLE PACING based on video position.
+
+### CONTENT FILTER (MANDATORY - VIOLATION = REJECTED OUTPUT)
+
+YOUR SCENE DESCRIPTIONS WILL BE REJECTED if visual_prompt contains:
+- Gore imagery: blood, wounds, severed limbs, impaled bodies, corpses in detail
+- Decay visuals: rotting bodies, decomposition, maggots, skeletal remains with flesh
+- Suffering: agonized faces, screaming victims, torture, execution close-ups
+- Disturbing imagery: piles of bodies, mass graves, disease symptoms
+
+For battle aftermath: Show DISTANT wide shots of battlefields, victory poses, or strategic positions.
+For psychological warfare (e.g., Vlad's stakes): Show DISTANT silhouettes or symbolic representations, NOT close-ups of impaled bodies.
 
 ### OBJECTIVE
 
@@ -1067,6 +1167,17 @@ ${auditReport}
 - Keep ALL important statistics, facts, and narrative beats
 - Don't remove content - reorganize and deduplicate it
 - Maintain the 5-section Gamified War structure (Matchup, Unit Deep Dive, Tactical Turn, Kill Screen, Aftermath)
+
+**6. SENSORY SANITIZATION (FINAL PASS)**
+- Scan the entire draft for ANY lingering descriptions of:
+  - Organic decay (rot, stench, decomposition)
+  - Bodily fluids (blood, viscera, pus)
+  - Physical agony (screaming, writhing, suffering)
+  - Graphic injury (wounds, severed limbs, gore)
+- Rewrite ALL such passages into cold, hard statistics or gamified mechanics
+- Example: "blood-soaked battlefield" → "high-casualty sector"
+- Example: "the stench of death" → "sanitation debuff active"
+- If a passage cannot be sanitized, DELETE it entirely — tactical outcomes matter, not sensory details
 
 ### STYLE CONSTRAINTS
 
