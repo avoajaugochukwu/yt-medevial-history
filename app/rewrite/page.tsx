@@ -186,8 +186,14 @@ export default function RewritePage() {
       });
 
       if (!rewriteResponse.ok) {
-        const errorData = await rewriteResponse.json();
-        throw new Error(errorData.details || errorData.error || 'Rewrite failed');
+        let errorMessage = 'Rewrite failed';
+        try {
+          const errorData = await rewriteResponse.json();
+          errorMessage = errorData.details || errorData.error || errorMessage;
+        } catch {
+          // Response wasn't valid JSON, use default message
+        }
+        throw new Error(errorMessage);
       }
 
       const rewriteData = await rewriteResponse.json();
@@ -523,7 +529,7 @@ export default function RewritePage() {
                     </div>
 
                     {/* Missing Tactics */}
-                    {analysis.retentionTactics.missingTactics.length > 0 && (
+                    {(analysis.retentionTactics?.missingTactics?.length ?? 0) > 0 && (
                       <div>
                         <h4 className="font-semibold text-amber-700 dark:text-amber-400 text-sm mb-2">
                           Missing Retention Tactics

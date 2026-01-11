@@ -873,18 +873,18 @@ Return a JSON array of scenes (ONLY valid JSON, no markdown code blocks).
 // SCENE IMAGE GENERATION - OIL PAINTING STYLE INJECTION
 // ============================================================================
 
-// Dynamic style suffix generator - uses AI-generated art style or falls back to default
-export const generateStyleSuffix = (artStyle?: string): string => {
-  if (artStyle) {
-    // Use AI-generated era-appropriate style
-    return `
+// Fixed style suffix generator - uses consistent digital illustration style for all scenes
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export const generateStyleSuffix = (_artStyle?: string): string => {
+  // Use fixed high-fidelity digital illustration style for all scenes
+  return `
 
 STYLE REQUIREMENTS (CRITICAL):
-${artStyle}
-
-ADDITIONAL REQUIREMENTS:
+- High-fidelity digital illustration
+- Sharp focus, unreal engine 5, octane render
+- Detailed lineage, dramatic lighting
+- 8k resolution
 - Historically accurate costume, architecture, and props
-- 8k resolution, museum quality
 - Realistic faces and anatomy, detailed expressions
 - Atmospheric perspective and depth
 
@@ -893,28 +893,8 @@ NEGATIVE PROMPTS (AVOID):
 - NO modern clothing, anachronistic elements, or smartphones
 - NO blur, distortion, or low quality
 - NO text, watermarks, or logos
-- NO abstract or surrealist elements`;
-  }
-
-  // Fallback to default classical oil painting style if no art style provided
-  return `
-
-STYLE REQUIREMENTS (CRITICAL):
-- Masterpiece oil painting in classical historical art style
-- Dramatic chiaroscuro lighting, deep shadows, rich highlights
-- Highly detailed textures: brushwork visible, oil paint technique
-- Cinematic composition with strong focal point
-- Historically accurate costume, architecture, and props
-- 8k resolution, museum quality
-- Realistic faces and anatomy, detailed expressions
-- Atmospheric perspective, rich color palette
-
-NEGATIVE PROMPTS (AVOID):
-- NO cartoon, anime, vector art, or minimalist styles
-- NO modern clothing, anachronistic elements, or smartphones
-- NO blur, distortion, or low quality
-- NO text, watermarks, or logos
-- NO abstract or surrealist elements`;
+- NO abstract or surrealist elements
+- NO frame, border, or picture frame around the image`;
 };
 
 // Legacy export for backward compatibility (uses default style)
