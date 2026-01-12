@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSessionStore } from '@/lib/store';
 import { SceneBreakdown } from '@/components/workflow/scene-breakdown';
+import { CharacterApproval } from '@/components/workflow/characters/character-approval';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -12,9 +13,12 @@ import { countWords } from '@/lib/utils/word-count';
 
 export default function ScenesPage() {
   const router = useRouter();
-  const { script, setScript, storyboardScenes } = useSessionStore();
+  const { script, setScript, storyboardScenes, characterSession, setCharacterSession } = useSessionStore();
   const [localScript, setLocalScript] = useState('');
   const [isScriptSet, setIsScriptSet] = useState(!!script?.content);
+  const [isCharacterApprovalComplete, setIsCharacterApprovalComplete] = useState(
+    characterSession?.status === 'complete'
+  );
 
   // Check if all scenes are generated
   const allScenesGenerated = storyboardScenes.length > 0 &&
@@ -40,6 +44,20 @@ export default function ScenesPage() {
   const handleClearScript = () => {
     setLocalScript('');
     setIsScriptSet(false);
+    setIsCharacterApprovalComplete(false);
+    setCharacterSession(null);
+  };
+
+  const handleCharacterApprovalComplete = () => {
+    setIsCharacterApprovalComplete(true);
+  };
+
+  const handleCharacterApprovalSkip = () => {
+    setCharacterSession({
+      characters: [],
+      status: 'complete',
+    });
+    setIsCharacterApprovalComplete(true);
   };
 
   const wordCount = countWords(localScript);
@@ -95,8 +113,18 @@ export default function ScenesPage() {
             </Card>
           )}
 
-          {/* Scene Breakdown Component - Show only if script is set */}
-          {isScriptSet && (
+          {/* Character Approval - Show after script is set, before scene generation */}
+          {isScriptSet && !isCharacterApprovalComplete && (
+            <CharacterApproval
+              script={script?.content || ''}
+              era={script?.era || 'Other'}
+              onComplete={handleCharacterApprovalComplete}
+              onSkip={handleCharacterApprovalSkip}
+            />
+          )}
+
+          {/* Scene Breakdown Component - Show only after character approval */}
+          {isScriptSet && isCharacterApprovalComplete && (
             <>
               <Card className="p-6">
                 <SceneBreakdown />

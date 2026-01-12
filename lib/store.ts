@@ -15,6 +15,8 @@ const initialState = {
   recursiveProgress: null,
   // YouTube repurposing state
   repurposeSession: null,
+  // Character reference state
+  characterSession: null,
   // Workflow state
   isGenerating: false,
   errors: [],
@@ -72,6 +74,21 @@ export const useSessionStore = create<SessionStore>((set) => ({
     set((state) => ({
       repurposeSession: state.repurposeSession
         ? { ...state.repurposeSession, ...updates }
+        : null,
+    })),
+
+  // Character reference actions
+  setCharacterSession: (session) => set({ characterSession: session }),
+
+  updateCharacter: (id, updates) =>
+    set((state) => ({
+      characterSession: state.characterSession
+        ? {
+            ...state.characterSession,
+            characters: state.characterSession.characters.map((c) =>
+              c.id === id ? { ...c, ...updates } : c
+            ),
+          }
         : null,
     })),
 }));

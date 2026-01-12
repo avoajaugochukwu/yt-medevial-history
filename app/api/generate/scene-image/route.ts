@@ -14,10 +14,25 @@ interface FalImageResult {
   images?: Array<{ url: string }>;
 }
 
+interface CharacterReference {
+  name: string;
+  visual_description: string;
+  reference_image_url: string;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const requestData = await request.json();
-    const { scene, artStyle } = requestData;
+    const { scene, artStyle, characterReferences } = requestData as {
+      scene: {
+        scene_number: number;
+        visual_prompt?: string;
+        scene_type?: string;
+        shot_type?: string;
+      };
+      artStyle?: string;
+      characterReferences?: CharacterReference[];
+    };
 
     if (!scene) {
       return NextResponse.json({ error: 'Scene data is required' }, { status: 400 });
@@ -45,27 +60,68 @@ export async function POST(request: NextRequest) {
     const negativePrompt = isMapScene ? NEGATIVE_PROMPT_MAPS : NEGATIVE_PROMPT_HISTORICAL;
     const styledPrompt = `${shotTypePrefix}${basePrompt}${styleSuffix}`;
 
+    // Check if we have valid character references with image URLs
+    const validCharacterRefs = characterReferences?.filter(
+      (ref) => ref.reference_image_url && ref.reference_image_url.trim() !== ''
+    ) || [];
+    const hasCharacterReferences = validCharacterRefs.length > 0 && !isMapScene;
+
+    // Build character context for the prompt if we have character references
+    let characterContext = '';
+    if (hasCharacterReferences) {
+      characterContext = '\n\nCHARACTER CONSISTENCY - Maintain exact appearance from reference images:\n';
+      validCharacterRefs.forEach((ref) => {
+        characterContext += `- ${ref.name}: ${ref.visual_description}\n`;
+      });
+    }
+
+    // Final prompt with optional character context
+    const finalPrompt = hasCharacterReferences
+      ? `${styledPrompt}${characterContext}`
+      : styledPrompt;
+
     const sceneTypeLabel = isMapScene ? 'MAP' : 'VISUAL';
     const styleDescription = artStyle ? 'AI-generated era-appropriate' : 'default oil painting';
     console.log(`[Scene Image] Generating ${sceneTypeLabel} image for scene ${scene.scene_number}`);
     console.log(`[Scene Image] Shot type: ${scene.shot_type || 'none'}`);
     console.log(`[Scene Image] Using ${styleDescription} style`);
-    console.log(`[Scene Image] Prompt length: ${styledPrompt.length} characters`);
+    console.log(`[Scene Image] Character references: ${validCharacterRefs.length}`);
+    console.log(`[Scene Image] Prompt length: ${finalPrompt.length} characters`);
 
-    // Use nano-banana for fast generation (7-10 seconds) with enhanced prompting
-    const apiEndpoint = 'fal-ai/nano-banana';
-    const apiRequest = {
-      input: {
-        prompt: styledPrompt,
-        negative_prompt: negativePrompt,
-        num_images: 1,
-        aspect_ratio: '16:9',
-        seed: Math.floor(Math.random() * 1000000), // Random seed for variety
-      },
-      logs: false,
-    };
+    let result: FalImageResult;
+    let modelUsed: string;
 
-    const result = (await fal.subscribe(apiEndpoint, apiRequest)) as FalImageResult;
+    if (hasCharacterReferences) {
+      // Use nano-banana/edit endpoint with image references for character consistency
+      const imageUrls = validCharacterRefs.map((ref) => ref.reference_image_url);
+
+      console.log(`[Scene Image] Using /edit endpoint with ${imageUrls.length} reference images`);
+
+      modelUsed = 'fal-ai/nano-banana/edit';
+      result = (await fal.subscribe(modelUsed, {
+        input: {
+          prompt: finalPrompt,
+          image_urls: imageUrls,
+          num_images: 1,
+          aspect_ratio: '16:9',
+          output_format: 'png',
+        },
+        logs: false,
+      })) as FalImageResult;
+    } else {
+      // Use standard nano-banana text-to-image for scenes without character references
+      modelUsed = 'fal-ai/nano-banana';
+      result = (await fal.subscribe(modelUsed, {
+        input: {
+          prompt: finalPrompt,
+          negative_prompt: negativePrompt,
+          num_images: 1,
+          aspect_ratio: '16:9',
+          seed: Math.floor(Math.random() * 1000000),
+        },
+        logs: false,
+      })) as FalImageResult;
+    }
 
     // Extract image URL from response
     const imageUrl = result.data?.images?.[0]?.url || result.images?.[0]?.url;
@@ -78,10 +134,12 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       image_url: imageUrl,
-      prompt_used: styledPrompt,
+      prompt_used: finalPrompt,
       aspect_ratio: '16:9',
-      model: 'fal-ai/nano-banana',
+      model: modelUsed,
       style: isMapScene ? 'historical-map' : 'oil-painting-historical',
+      character_conditioned: hasCharacterReferences,
+      character_count: validCharacterRefs.length,
     });
   } catch (error) {
     console.error('[Scene Image] Generation error:', error);

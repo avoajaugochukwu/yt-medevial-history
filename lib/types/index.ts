@@ -39,6 +39,25 @@ export interface HistoricalFigure {
   notable_actions?: string[];
 }
 
+// Extended character with reference image support for visual consistency
+export interface CharacterWithReference extends HistoricalFigure {
+  id: string;                          // UUID
+  reference_image_url?: string;        // Generated portrait URL
+  reference_generation_status: 'pending' | 'generating' | 'completed' | 'error';
+  visual_description: string;          // Detailed physical description for image gen
+  historical_period_appearance: string; // Era-appropriate clothing/armor
+  is_approved: boolean;
+  prominence: 'primary' | 'secondary';
+  error_message?: string;
+}
+
+// Character approval session state
+export interface CharacterApprovalSession {
+  characters: CharacterWithReference[];
+  status: 'idle' | 'identifying' | 'awaiting_approval' | 'generating_references' | 'review_portraits' | 'complete' | 'error';
+  error?: string;
+}
+
 export interface SensoryDetails {
   setting: string;
   weather: string;
@@ -130,6 +149,8 @@ export interface Scene {
   // Variable timing properties
   segment?: SceneSegment;
   suggested_duration?: number;
+  // Character reference support
+  character_ids?: string[];  // IDs of characters appearing in this scene
 }
 
 export interface StoryboardScene extends Scene {
@@ -164,6 +185,9 @@ export interface SessionStore {
   // YouTube repurposing state
   repurposeSession: RepurposeSession | null;
 
+  // Character reference state
+  characterSession: CharacterApprovalSession | null;
+
   // Workflow state
   isGenerating: boolean;
   errors: string[];
@@ -192,6 +216,10 @@ export interface SessionStore {
   // Repurpose actions
   setRepurposeSession: (session: RepurposeSession | null) => void;
   updateRepurposeSession: (updates: Partial<RepurposeSession>) => void;
+
+  // Character reference actions
+  setCharacterSession: (session: CharacterApprovalSession | null) => void;
+  updateCharacter: (id: string, updates: Partial<CharacterWithReference>) => void;
 }
 
 // ============================================================================

@@ -148,6 +148,7 @@ export function StoryboardGrid() {
     setSceneGenerationProgress,
     sceneGenerationProgress,
     historicalTopic,
+    characterSession,
     addError,
     clearErrors,
   } = useSessionStore();
@@ -187,19 +188,39 @@ export function StoryboardGrid() {
     updateStoryboardScene(scene.scene_number, { generation_status: 'generating' });
 
     try {
+      // Get character references for this scene if available
+      // For now, we pass all approved characters with completed portraits
+      // In the future, we could use scene.character_ids to filter specific characters
+      const characterReferences = characterSession?.characters
+        .filter(
+          (c) =>
+            c.is_approved &&
+            c.reference_generation_status === 'completed' &&
+            c.reference_image_url
+        )
+        .map((c) => ({
+          name: c.name,
+          visual_description: c.visual_description,
+          reference_image_url: c.reference_image_url!,
+        }));
+
       const response = await fetch('/api/generate/scene-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           scene,
           artStyle: historicalTopic?.artStyle,
+          characterReferences: characterReferences || [],
         }),
       });
 
       if (!response.ok) throw new Error('Failed to generate scene image');
 
       const data = await response.json();
-      console.log(`Scene ${scene.scene_number} generated with ${data.style} style`);
+      const conditionedLabel = data.character_conditioned
+        ? ` (with ${data.character_count} character refs)`
+        : '';
+      console.log(`Scene ${scene.scene_number} generated with ${data.style} style${conditionedLabel}`);
 
       if (isMountedRef.current) {
         updateStoryboardScene(scene.scene_number, {
