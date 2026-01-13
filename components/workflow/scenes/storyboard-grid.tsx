@@ -19,6 +19,7 @@ import {
   Map,
   Loader2,
   Camera,
+  Bell,
 } from 'lucide-react';
 
 // Batch size for concurrent image generation
@@ -80,7 +81,13 @@ function SceneCard({
                 Map
               </Badge>
             )}
-            {scene.shot_type && scene.scene_type !== 'map' && (
+            {scene.scene_type === 'subscribe' && (
+              <Badge variant="destructive" className="flex items-center gap-1">
+                <Bell className="h-3 w-3" />
+                Subscribe
+              </Badge>
+            )}
+            {scene.shot_type && scene.scene_type !== 'map' && scene.scene_type !== 'subscribe' && (
               <Badge variant="outline" className="flex items-center gap-1 text-xs">
                 <Camera className="h-3 w-3" />
                 {scene.shot_type}
@@ -97,7 +104,14 @@ function SceneCard({
 
         {/* Scene Image */}
         <div className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden group">
-          {scene.image_url ? (
+          {scene.scene_type === 'subscribe' ? (
+            // Subscribe placeholder - show bell icon instead of image
+            <div className="flex flex-col items-center justify-center h-full bg-red-50">
+              <Bell className="h-12 w-12 text-red-500 mb-2" />
+              <span className="text-sm font-medium text-red-600">Subscribe CTA</span>
+              <span className="text-xs text-red-400">Replace in video editing</span>
+            </div>
+          ) : scene.image_url ? (
             <>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -184,6 +198,18 @@ export function StoryboardGrid() {
   // Generate a single scene image
   const generateSceneImage = async (scene: StoryboardScene): Promise<boolean> => {
     if (!isMountedRef.current) return false;
+
+    // Skip image generation for subscribe placeholder scenes
+    if (scene.scene_type === 'subscribe') {
+      console.log(`[Storyboard] Scene ${scene.scene_number} is a subscribe placeholder - marking as completed`);
+      if (isMountedRef.current) {
+        updateStoryboardScene(scene.scene_number, {
+          generation_status: 'completed',
+          image_url: undefined, // No image for subscribe placeholders
+        });
+      }
+      return true;
+    }
 
     updateStoryboardScene(scene.scene_number, { generation_status: 'generating' });
 

@@ -758,6 +758,49 @@ ${timingPlan.promptGuidance}
 - Include "map_data" object with structured geographic information
 - Focus visual_prompt on political boundaries and territories as they existed in the time period
 
+**Map Scene Script Snippets (CRITICAL):**
+Map scenes MUST have script_snippets that contain:
+- Location names (cities, rivers, regions)
+- Geographic references
+- Territorial descriptions
+
+Map scenes MUST NOT have script_snippets that contain:
+- Battle action descriptions ("the army was destroyed", "troops scattered")
+- Combat outcomes
+- Non-geographic content
+
+If a location is mentioned mid-sentence with battle content, extract ONLY the location portion for the map scene.
+Example: "At Nihāvand, the last Persian army was destroyed."
+- Correct map snippet: "At Nihāvand" or "Nihāvand, the ancient Persian stronghold"
+- Wrong map snippet: "the last Persian army was destroyed"
+
+### SUBSCRIBE/CTA SCENE HANDLING (CRITICAL)
+
+When the script contains engagement CTAs (calls-to-action) like:
+- "smash that subscribe button"
+- "hit subscribe"
+- "subscribe to the channel"
+- Any mention of subscribing or subscription
+
+You MUST create TWO separate scenes:
+
+1. **Subscribe Placeholder Scene (scene_type: "subscribe")**:
+   - Duration: 3-4 seconds
+   - script_snippet: The subscribe CTA text ONLY (e.g., "smash that subscribe button")
+   - visual_prompt: "PLACEHOLDER: Subscribe button animation - to be replaced in video editing"
+   - shot_type: null (not applicable for placeholders)
+   - segment: Use the current segment based on video position
+
+2. **Following Content Scene**: The content that FOLLOWS the CTA continues as a normal visual scene
+
+**Example:**
+Script: "If you want to see how the world's most brilliant military deception turned a 3-to-1 disadvantage into total victory, smash that subscribe button. The Sassanid Empire was bleeding to death, and everyone knew it."
+
+Scene breakdown:
+- Scene N: "If you want to see how the world's most brilliant military deception turned a 3-to-1 disadvantage into total victory," (visual scene)
+- Scene N+1: "smash that subscribe button." (scene_type: "subscribe", placeholder)
+- Scene N+2: "The Sassanid Empire was bleeding to death, and everyone knew it." (visual scene)
+
 ### INPUT SCRIPT
 
 ${script}
@@ -897,12 +940,43 @@ Return a JSON array of scenes (ONLY valid JSON, no markdown code blocks).
 - Apply Director Rules to determine the appropriate shot_type for each scene
 - Each visual_prompt MUST follow the formula: [Shot Type] of [Subject] [Action]. [Lighting]. [Details].
 - Each visual_prompt must be 50-100 words (detailed enough for quality image generation)
-- Script_snippet length varies by segment:
-  - HOOK: 1-2 sentences maximum (rapid cuts)
-  - SETUP: 2-4 sentences (establishing context)
-  - CORE_CONTENT: 3-5 sentences (main narrative)
-  - DEEP_DIVE: 5-8 sentences (detailed analysis)
-  - LONG_TAIL: 6-10 sentences (reflective conclusion)
+
+### SCENE SPLITTING RULES (CRITICAL - DURATION/WORD COUNT BASED)
+
+At 150 words/minute narration speed, calculate scene boundaries by WORD COUNT:
+
+| Segment | Avg Duration | Max Words Per Scene |
+|---------|--------------|---------------------|
+| HOOK | 2.0s | 5-6 words |
+| SETUP | 4.0s | 10 words |
+| CORE_CONTENT | 8.0s | 20 words |
+| DEEP_DIVE | 15.0s | 38 words |
+| LONG_TAIL | 25.0s | 63 words |
+
+**HOW TO APPLY (LOGICAL SPLITTING):**
+1. Count the words in each sentence/phrase
+2. If word count exceeds the segment's max, SPLIT into multiple scenes
+3. Split at NATURAL breakpoints (periods, commas, em-dashes, semicolons) - but ONLY when word count requires it
+4. DO NOT split short sentences just because of punctuation
+
+**EXAMPLE (HOOK SEGMENT - MAX 6 WORDS):**
+
+Input: "The Persian line collapses. One hundred thousand elite troops — the last army of a four-hundred-year empire — are now scattered across the plain in complete chaos."
+
+Analysis:
+- Sentence 1: "The Persian line collapses." = 4 words ✓ (fits in 1 scene)
+- Sentence 2: "One hundred thousand elite troops — the last army of a four-hundred-year empire — are now scattered across the plain in complete chaos." = 22 words ✗ (exceeds 6 words, MUST split)
+
+Correct Output (4-5 scenes):
+1. "The Persian line collapses." (4 words, ~1.6s)
+2. "One hundred thousand elite troops" (5 words, ~2.0s)
+3. "the last army of a four-hundred-year empire" (8 words, ~3.2s)
+4. "are now scattered across the plain" (6 words, ~2.4s)
+5. "in complete chaos." (3 words, ~1.2s)
+
+WRONG Output (1 scene - violates word limit):
+1. "The Persian line collapses. One hundred thousand elite troops — the last army of a four-hundred-year empire — are now scattered across the plain in complete chaos." (24 words, ~10s) ← VIOLATES hook max of 6 words
+
 - Historical_context is optional but valuable for understanding
 - Maintain chronological order matching the script
 - Transition smoothly between segments (no jarring pacing changes)`;

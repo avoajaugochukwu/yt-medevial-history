@@ -140,7 +140,7 @@ export type CinematicShotType =
 
 export interface Scene {
   scene_number: number;
-  scene_type?: 'visual' | 'map';
+  scene_type?: 'visual' | 'map' | 'subscribe';
   shot_type?: CinematicShotType;
   script_snippet: string;
   visual_prompt: string;
