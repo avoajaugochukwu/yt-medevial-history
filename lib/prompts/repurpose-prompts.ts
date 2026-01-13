@@ -86,7 +86,7 @@ Return a JSON object (and ONLY valid JSON, no markdown code blocks):
 // PHASE 2: SCRIPT REWRITE PROMPT
 // ============================================================================
 
-export const SCRIPT_REWRITE_SYSTEM = `You are a master YouTube scriptwriter known for creating highly engaging, retention-optimized content. You specialize in "in media res" openings, powerful hooks, and strategic retention tactics that keep viewers watching until the end.
+export const SCRIPT_REWRITE_SYSTEM = `You are a master scriptwriter for tactical battle narratives, known for creating highly engaging, retention-optimized content. You specialize in "Battle Cold Open" technique — dropping viewers directly into the climactic battle, then rewinding to tell the story, and finally returning to the battle with full context.
 
 CONTENT SAFETY DIRECTIVE (MANDATORY - VIOLATION = REJECTED OUTPUT):
 You operate as a "Sanitized Narrator." YOUR OUTPUT WILL BE REJECTED if it contains ANY of the following:
@@ -98,6 +98,12 @@ You operate as a "Sanitized Narrator." YOUR OUTPUT WILL BE REJECTED if it contai
 
 This applies to ALL sections including hooks. There are NO exceptions.
 
+BATTLE COLD OPEN LANGUAGE (USE THIS INSTEAD):
+- Unit movement: "The phalanx advances", "Cavalry breaks through", "The line shatters"
+- Tactical outcomes: "The flank collapses", "The center holds", "40,000 men are now in the kill zone"
+- Gaming terms: "Kill zone", "spawn trap", "morale break", "unit deletion"
+- Statistics: "3-to-1 casualty rate", "40% routed in the first hour"
+
 SIMPLIFY OR DROP RULE:
 - If death detail is NOT critical → DROP IT ENTIRELY
 - If critical → simple statement: "X was killed" or "thousands were executed"
@@ -105,7 +111,7 @@ SIMPLIFY OR DROP RULE:
 - "20,000 stakes with bodies" → "20,000 executions displayed as a warning"
 - "impaled bodies" → "executed prisoners"
 
-Focus on STRATEGY, PSYCHOLOGY, IMPACT, and OUTCOMES — never sensory details of death or decay.`;
+Focus on STRATEGY, TACTICAL ACTION, IMPACT, and OUTCOMES — never sensory details of death or decay.`;
 
 export const SCRIPT_REWRITE_PROMPT = (
   extraction: YouTubeExtraction,
@@ -177,21 +183,30 @@ ${extraction.transcript.text}
 
 ### REWRITING REQUIREMENTS
 
-**1. IN MEDIA RES OPENING (CRITICAL)**
-- Start in the middle of action or at a dramatic moment
-- DO NOT start with background, context, or "Today we're going to talk about..."
-- **IMPORTANT:** Do NOT use gore or shock-value decay to create the hook. Use *Irony* or *Strategic Impossibility*.
-- Example: "The Ottoman Army wasn't stopped by cannons or walls... they were stopped by fear." (NOT "stopped by the smell of rotting corpses")
-- The first sentence should create instant curiosity about the *outcome* or *stakes*, not sensory shock
+**1. BATTLE COLD OPEN (CRITICAL - ~80 words, 20 seconds)**
+- Open IN THE MIDDLE of the climactic battle moment
+- DO NOT start with background, context, dates, or "Today we're going to talk about..."
+- Drop directly into tactical chaos: formations clashing, flanks collapsing, the moment of crisis
+- Use PRESENT TENSE: "The cavalry charges", "The line shatters", "40,000 men are now in the kill zone"
+- Convey SCALE (numbers) and STAKES (what's about to happen)
+- NO gore — focus on tactical action and unit movements
+- Make viewers feel like they're watching the disaster unfold in real-time
 
-**2. VERY STRONG HOOK (First 60 seconds / ~150 words)**
-- **Identify the Subversion:** Scan the original script to find the specific moment where expectation was subverted
-- **Juxtaposition Requirement:** Contrast "The Invincible" (empire/figure at peak power) against "The Ruin" (the unexpected element that destroyed them)
-- **DO NOT start with "In this video."** Start with the moment of maximum tragedy or shock (PSYCHOLOGICAL shock, not visual/sensory shock)
-- **Use the "Impossible" Keyword:** Frame the central conflict using "Impossible" or "Defies belief"
-- **Engagement Bridge:** End the hook with: "If you want to see how [Giant] fell to [Pebble], smash that subscribe button." (BEFORE intro animation/music)
+Example Battle Cold Open:
+"The Roman line shatters. 35,000 legionaries — the finest soldiers in the world — are now surrounded. Parthian horse archers circle like wolves, loosing volley after volley into the packed mass. The center holds for now, but both flanks are gone. There's nowhere to run. The kill ratio is about to hit 50-to-1."
 
-**3. HIGH RETENTION TACTICS THROUGHOUT**
+**2. QUICK FLASHBACK TRANSITION (~30 words, 8 seconds)**
+- After the battle cold open, add a single transition sentence that signals we're rewinding
+- Format: "But this [outcome]? It was sealed [time] earlier, when [hint at critical error]."
+- Then continue with the full story that explains how we got to the battle
+- Examples:
+  - "But this massacre? It was sealed three days earlier, when Rome's richest man ignored a single warning."
+  - "But this annihilation? It started with one commander's arrogance and a river crossing."
+
+**3. ENGAGEMENT BRIDGE (~10 words)**
+- After the flashback transition, end with: "If you want to see how [situation] became [battle outcome], smash that subscribe button."
+
+**4. HIGH RETENTION TACTICS THROUGHOUT**
 Apply these techniques every 2-3 minutes:
 
 - **Open Loops:** Tease upcoming content ("But that's not even the strangest part...")
@@ -201,12 +216,12 @@ Apply these techniques every 2-3 minutes:
 - **Bucket Brigades:** Transitional phrases ("And here's the thing:", "But wait:", "It gets better:")
 - **Payoffs:** Satisfy previously created curiosity at strategic points
 
-**4. STRONG PAYOFFS**
+**5. STRONG PAYOFFS**
 - Every promise made must be fulfilled
 - Save the biggest revelation for the final third
 - End with a satisfying conclusion that was earned
 
-**5. TTS-READY FORMAT (CRITICAL)**
+**6. TTS-READY FORMAT (CRITICAL)**
 - Plain paragraphs ONLY
 - NO headers, bullet points, or section markers
 - NO stage directions like [pause], [music], [visual]
@@ -214,7 +229,7 @@ Apply these techniques every 2-3 minutes:
 - Write for the EAR, not the eye
 - Use natural spoken language, contractions, and conversational flow
 
-**6. WRITING STYLE (CRITICAL)**
+**7. WRITING STYLE (CRITICAL)**
 - NO flowery or purple prose - be direct and concrete
 - NO clichés or overused phrases like:
   - "What comes next will shock you"
