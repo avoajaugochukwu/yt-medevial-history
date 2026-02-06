@@ -59,8 +59,12 @@ ${CHARACTER_PORTRAIT_STYLE_SUFFIX}`;
       logs: false,
     })) as FalImageResult;
 
+    console.log('[Character Reference] FAL raw response:', JSON.stringify(result).substring(0, 500));
+
     // Extract image URL from response
     const imageUrl = result.data?.images?.[0]?.url || result.images?.[0]?.url;
+
+    console.log('[Character Reference] Extracted URL:', imageUrl);
 
     if (!imageUrl) {
       throw new Error('No image URL in response');

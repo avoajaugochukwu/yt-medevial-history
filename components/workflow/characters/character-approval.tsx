@@ -51,6 +51,8 @@ function CharacterCard({
   onRegenerate?: (character: CharacterWithReference) => void;
   showRegenerate?: boolean;
 }) {
+  console.log('[CharacterCard]', character.name, { imageUrl: character.reference_image_url, status: character.reference_generation_status });
+
   const isGenerating = character.reference_generation_status === 'generating';
   const isCompleted = character.reference_generation_status === 'completed';
   const isError = character.reference_generation_status === 'error';
@@ -356,11 +358,16 @@ export function CharacterApproval({ script, era, onComplete, onSkip }: Character
             }
 
             const data = await response.json();
+            console.log('[generatePortraits] API response for', character.name, data);
+            console.log('[generatePortraits] image_url received:', data.image_url);
 
             updateCharacter(character.id, {
               reference_image_url: data.image_url,
               reference_generation_status: 'completed',
             });
+
+            const stored = useSessionStore.getState().characterSession?.characters.find(c => c.id === character.id);
+            console.log('[generatePortraits] Store after update:', character.name, { storedUrl: stored?.reference_image_url, storedStatus: stored?.reference_generation_status });
           } catch (error) {
             console.error(`Failed to generate portrait for ${character.name}:`, error);
             updateCharacter(character.id, {
@@ -376,10 +383,17 @@ export function CharacterApproval({ script, era, onComplete, onSkip }: Character
     }
 
     // Transition to review state (not complete - let user review first)
-    setCharacterSession({
-      ...characterSession,
-      status: 'review_portraits',
-    });
+    // FIX: Read fresh state from store — the closure `characterSession` is stale
+    // and would wipe all the URLs that updateCharacter just set
+    const latestSession = useSessionStore.getState().characterSession;
+    console.log('[generatePortraits] Final session before status change:', latestSession?.characters.map(c => ({ name: c.name, url: c.reference_image_url, status: c.reference_generation_status })));
+    console.log('[generatePortraits] Closure session (stale, NOT used):', characterSession?.characters.map(c => ({ name: c.name, url: c.reference_image_url, status: c.reference_generation_status })));
+    if (latestSession) {
+      setCharacterSession({
+        ...latestSession,
+        status: 'review_portraits',
+      });
+    }
   };
 
   // Regenerate a single portrait
