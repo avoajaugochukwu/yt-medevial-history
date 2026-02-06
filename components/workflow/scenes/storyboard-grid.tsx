@@ -22,8 +22,6 @@ import {
   Bell,
 } from 'lucide-react';
 
-// Batch size for concurrent image generation
-const GENERATION_BATCH_SIZE = 20;
 
 type AnalysisPhase = 'idle' | 'analyzing' | 'complete';
 type GenerationPhase = 'idle' | 'generating' | 'complete';
@@ -175,14 +173,6 @@ export function StoryboardGrid() {
   const hasStartedRef = useRef(false);
   const isMountedRef = useRef(true);
 
-  // Utility function to chunk array into batches
-  const chunkArray = <T,>(array: T[], chunkSize: number): T[][] => {
-    const chunks: T[][] = [];
-    for (let i = 0; i < array.length; i += chunkSize) {
-      chunks.push(array.slice(i, i + chunkSize));
-    }
-    return chunks;
-  };
 
   // Create placeholder scenes for immediate display
   const createPlaceholderScenes = (count: number): StoryboardScene[] => {
@@ -268,33 +258,19 @@ export function StoryboardGrid() {
     }
   };
 
-  // Generate all scene images in batches
+  // Generate all scene images in parallel (no concurrency limit)
   const generateAllSceneImages = async (scenesToGenerate: StoryboardScene[]) => {
     if (!isMountedRef.current) return;
 
     setGenerationPhase('generating');
 
-    const batches = chunkArray(scenesToGenerate, GENERATION_BATCH_SIZE);
-    console.log(
-      `[Storyboard] Starting batched generation: ${scenesToGenerate.length} scenes in ${batches.length} batches of ${GENERATION_BATCH_SIZE}`
+    console.log(`[Storyboard] Generating all ${scenesToGenerate.length} scene images in parallel`);
+
+    await Promise.allSettled(
+      scenesToGenerate.map((scene) => generateSceneImage(scene))
     );
 
-    for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
-      if (!isMountedRef.current) break;
-
-      const batch = batches[batchIndex];
-      console.log(
-        `[Storyboard] Processing batch ${batchIndex + 1}/${batches.length} (scenes ${batch[0].scene_number}-${batch[batch.length - 1].scene_number})`
-      );
-
-      // Generate all scenes in this batch concurrently
-      const batchPromises = batch.map((scene) => generateSceneImage(scene));
-
-      // Wait for entire batch to complete before starting next batch
-      await Promise.allSettled(batchPromises);
-    }
-
-    console.log('[Storyboard] Batched generation complete');
+    console.log('[Storyboard] All scene image generation complete');
     if (isMountedRef.current) {
       setGenerationPhase('complete');
     }
@@ -489,7 +465,7 @@ export function StoryboardGrid() {
           {isAnalyzing
             ? 'Breaking down your script into scenes'
             : isGenerating
-              ? `Creating images in batches of ${GENERATION_BATCH_SIZE}`
+              ? 'Creating scene images'
               : 'Click on any scene to view details or regenerate the image'}
         </p>
 

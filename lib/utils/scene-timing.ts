@@ -149,3 +149,54 @@ export function getSuggestedSceneDuration(segmentName: string): number {
   const segment = SCENE_TIMING_SEGMENTS.find(s => s.name === segmentName);
   return segment?.avgDuration ?? 7;
 }
+
+export interface SegmentChunk {
+  chunkIndex: number;
+  segments: SegmentSceneAllocation[];
+  totalScenes: number;
+  startSceneNumber: number;
+  endSceneNumber: number;
+}
+
+/**
+ * Group timing segments into chunks that each stay under a max scene count.
+ * This prevents GPT-4o from exceeding its output token limit on long scripts.
+ */
+export function chunkSegmentsBySceneCount(
+  timingPlan: SceneTimingPlan,
+  maxScenesPerChunk: number = 50
+): SegmentChunk[] {
+  const chunks: SegmentChunk[] = [];
+  let currentSegments: SegmentSceneAllocation[] = [];
+  let currentSceneCount = 0;
+  let globalSceneNumber = 1;
+
+  for (const segment of timingPlan.segments) {
+    if (currentSceneCount + segment.sceneCount > maxScenesPerChunk && currentSegments.length > 0) {
+      chunks.push({
+        chunkIndex: chunks.length,
+        segments: currentSegments,
+        totalScenes: currentSceneCount,
+        startSceneNumber: globalSceneNumber,
+        endSceneNumber: globalSceneNumber + currentSceneCount - 1,
+      });
+      globalSceneNumber += currentSceneCount;
+      currentSegments = [];
+      currentSceneCount = 0;
+    }
+    currentSegments.push(segment);
+    currentSceneCount += segment.sceneCount;
+  }
+
+  if (currentSegments.length > 0) {
+    chunks.push({
+      chunkIndex: chunks.length,
+      segments: currentSegments,
+      totalScenes: currentSceneCount,
+      startSceneNumber: globalSceneNumber,
+      endSceneNumber: globalSceneNumber + currentSceneCount - 1,
+    });
+  }
+
+  return chunks;
+}
