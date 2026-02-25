@@ -1,17 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getOpenAIClient } from '@/lib/ai/openai';
-import { SYSTEM_PROMPT } from '@/lib/prompts/war-room';
-import { GENERATE_ART_STYLE_PROMPT } from '@/lib/prompts/style';
+import { generateArtStyle } from '@/lib/ai/art-style';
 import { validateRequest, isValidationError, ArtStyleSchema } from '@/lib/api/validate';
-import type { HistoricalEra } from '@/lib/types';
 
 export const runtime = 'edge';
 export const maxDuration = 30;
-
-interface ArtStyleRequest {
-  era: HistoricalEra;
-  title: string;
-}
 
 /**
  * POST /api/generate/art-style
@@ -27,31 +19,7 @@ export async function POST(request: NextRequest) {
 
     console.log(`[Art Style] Generating tactical art style for: "${title}" (${era})`);
 
-    const client = getOpenAIClient();
-    const prompt = GENERATE_ART_STYLE_PROMPT(era, title);
-
-    const response = await client.chat.completions.create({
-      model: 'gpt-4o-mini',
-      max_tokens: 1000,
-      temperature: 0.8,
-      messages: [
-        {
-          role: 'system',
-          content: SYSTEM_PROMPT,
-        },
-        {
-          role: 'user',
-          content: prompt,
-        },
-      ],
-    });
-
-    const content = response.choices[0]?.message?.content;
-    if (!content) {
-      throw new Error('Unexpected empty response from OpenAI');
-    }
-
-    const artStyle = content.trim();
+    const artStyle = await generateArtStyle(era, title);
 
     console.log(`[Art Style] Generated tactical art style (${artStyle.length} chars)`);
     console.log(`[Art Style] Preview: ${artStyle.substring(0, 150)}...`);

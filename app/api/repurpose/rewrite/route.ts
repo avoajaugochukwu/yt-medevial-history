@@ -4,6 +4,7 @@ import {
   SCRIPT_REWRITE_SYSTEM,
   SCRIPT_REWRITE_PROMPT,
 } from '@/lib/prompts/repurpose-prompts';
+import { WORDS_PER_MINUTE } from '@/lib/config/content';
 import type { YouTubeExtraction, ScriptAnalysis, RewrittenScript } from '@/lib/types';
 
 export const runtime = 'nodejs';
@@ -39,7 +40,7 @@ export async function POST(request: NextRequest) {
 
     const content = response.trim();
     const wordCount = content.split(/\s+/).filter((w) => w.length > 0).length;
-    const estimatedDuration = Math.round((wordCount / 150) * 10) / 10;
+    const estimatedDuration = Math.round((wordCount / WORDS_PER_MINUTE) * 10) / 10;
 
     const rewrittenScript: RewrittenScript = {
       content,

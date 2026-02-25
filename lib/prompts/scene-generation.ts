@@ -2,6 +2,8 @@
 // SCENE GENERATION PROMPTS
 // ============================================================================
 
+import { CONTENT_SAFETY_VISUAL } from './content-safety';
+
 export interface PreviousScene {
   scene_number: number;
   script_snippet: string;
@@ -34,16 +36,7 @@ ${previousScenes.map(s => `**Scene ${s.scene_number}** [${s.pacing_phase}]:
 
 You are a **Visual Director** for historical documentary content, specialized in translating narration into stunning visual scene descriptions.
 
-### CONTENT FILTER (MANDATORY - VIOLATION = REJECTED OUTPUT)
-
-YOUR SCENE DESCRIPTIONS WILL BE REJECTED if visual_prompt contains:
-- Gore imagery: blood, wounds, severed limbs, impaled bodies, corpses in detail
-- Decay visuals: rotting bodies, decomposition, maggots, skeletal remains with flesh
-- Suffering: agonized faces, screaming victims, torture, execution close-ups
-- Disturbing imagery: piles of bodies, mass graves, disease symptoms
-
-For battle aftermath: Show DISTANT wide shots of battlefields, victory poses, or strategic positions.
-For psychological warfare (e.g., Vlad's stakes): Show DISTANT silhouettes or symbolic representations, NOT close-ups of impaled bodies.
+${CONTENT_SAFETY_VISUAL}
 
 ### OBJECTIVE
 

@@ -7,6 +7,8 @@ import { parseJsonArray } from '@/lib/api/json-parser';
 import { validateRequest, isValidationError, ScriptAnalysisSchema } from '@/lib/api/validate';
 import { splitTextBySentenceIntegrity } from '@/lib/utils/script-splitter';
 import { getPacingPhase } from '@/lib/config/pacing';
+import { WORDS_PER_MINUTE, SENTENCES_PER_CHUNK } from '@/lib/config/content';
+import { MODELS } from '@/lib/config/ai';
 
 export const maxDuration = 600; // 10 minutes timeout for large scene generation
 export const runtime = 'nodejs'; // Use Node.js runtime for streaming support
@@ -26,14 +28,14 @@ export async function POST(request: NextRequest) {
     const { script } = result;
 
     const wordCount = script.trim().split(/\s+/).length;
-    const durationSeconds = Math.round((wordCount / 150) * 60);
+    const durationSeconds = Math.round((wordCount / WORDS_PER_MINUTE) * 60);
 
     console.log(`[Scene Analysis] Analyzing script (${script.length} chars, ${wordCount} words, ~${Math.round(durationSeconds / 60)} min)`);
 
     const client = getOpenAIClient();
 
-    console.log(`[Scene Analysis] Splitting script deterministically (20 sentences per chunk)...`);
-    const { management_chunks } = splitTextBySentenceIntegrity(script, 20);
+    console.log(`[Scene Analysis] Splitting script deterministically (${SENTENCES_PER_CHUNK} sentences per chunk)...`);
+    const { management_chunks } = splitTextBySentenceIntegrity(script, SENTENCES_PER_CHUNK);
     const sections = management_chunks.map(chunk => chunk.text_content);
 
     console.log(`[Scene Analysis] Split into ${management_chunks.length} chunks:`);
@@ -200,7 +202,7 @@ async function generateSection(
   const maxTokens = 16000;
 
   const stream = await client.chat.completions.create({
-    model: 'gpt-4o',
+    model: MODELS.GPT4O,
     max_tokens: maxTokens,
     temperature: 0.7,
     stream: true,

@@ -3,13 +3,18 @@
 // ============================================================================
 
 import type {
-  HistoricalEra,
   TacticalResearch,
   GamifiedWarOutline,
   GamifiedWarSection,
   RecursivePromptPayload,
   ScriptDuration,
 } from '@/lib/types';
+import { WORDS_PER_MINUTE } from '@/lib/config/content';
+import {
+  CONTENT_SAFETY_SYSTEM_DIRECTIVE,
+  CONTENT_SAFETY_FILTER,
+  CONTENT_SAFETY_TRANSLATION_GUIDE,
+} from './content-safety';
 
 
 export const SYSTEM_PROMPT = `You are the War Room, a tactical battle narrative engine that brings historical warfare to life through cinematic storytelling and strategic analysis. You use gaming terminology to explain the mechanics of warfare — treating units as builds, terrain as map meta, and tactical decisions as exploits or errors. Your style is analytical yet dramatic.
@@ -17,32 +22,7 @@ export const SYSTEM_PROMPT = `You are the War Room, a tactical battle narrative 
 NARRATIVE STRUCTURE - CIRCULAR BATTLE NARRATIVE:
 You employ a "Circular Battle Narrative" — opening in the midst of the climactic battle (cold open), then rewinding to show how we got there, building tension as the story approaches the battle, then returning to expand on the cold open with full context before moving to aftermath. During the Hook (0:00-0:40), you drop viewers directly INTO the battle — formations clashing, flanks collapsing, the moment of crisis. After the cold open, you transition into tactical analysis that builds back to that moment.
 
-CONTENT SAFETY DIRECTIVE (MANDATORY - VIOLATION = REJECTED OUTPUT):
-You operate as a "Sanitized Analyst." YOUR OUTPUT WILL BE REJECTED if it contains ANY of the following:
-- Smell descriptions: stench, reek, odor, rotting smell, the smell of death
-- Decay descriptions: rotting, decomposing, liquefying, festering, putrid, decaying corpses
-- Physical penetration: piercing flesh, impaling, puncturing, skewering bodies
-- Bodily fluids: blood pooling, viscera, entrails, gore, pus
-- Physical agony: screaming in pain, writhing, suffering, agonizing death
-- Sensory assault: "hit like a wall", "choked the air", "couldn't breathe"
-
-This applies to ALL sections including hooks. There are NO exceptions.
-
-BATTLE COLD OPEN LANGUAGE (USE THIS):
-- Unit movement: "The phalanx advances", "Cavalry breaks through", "The line shatters"
-- Tactical outcomes: "The flank collapses", "The center holds", "40,000 men are now in the kill zone"
-- Gaming terms: "Kill zone", "spawn trap", "morale break", "unit deletion"
-- Statistics: "3-to-1 casualty rate", "40% of the army routed"
-
-SIMPLIFY OR DROP RULE:
-- If a death/violence detail is NOT critical to understanding the story → DROP IT ENTIRELY
-- If it IS critical → reduce to simple statement: "X was killed" or "thousands were executed"
-- NEVER describe the METHOD of death (no "stakes piercing", "impaled", "bearing human forms", "corpse on display")
-- "20,000 stakes with bodies" → "20,000 executions displayed as a warning"
-- "impaled bodies" → "executed prisoners"
-- "the corpse of X displayed on a stake" → "X was killed and displayed as a message"
-
-REQUIRED APPROACH: Treat casualties as "unit deletion" or "manpower loss." Describe plague/mass death as "sanitation debuff" or "health mechanic." Your framework is "Abstraction over Sensation" — describe THAT something happened (statistics, mechanics), never HOW it looked, smelled, or sounded.`;
+${CONTENT_SAFETY_SYSTEM_DIRECTIVE}`;
 
 // ============================================================================
 // WAR ROOM STYLE CONSTRAINTS
@@ -220,20 +200,7 @@ export const HOOK_PROMPT = (research: TacticalResearch) => `### ROLE
 
 You are a **War Room Narrator** opening a tactical battle narrative. Your hook must achieve absolute retention in 40 seconds using the "Battle Cold Open" technique — dropping viewers directly into the climactic battle before rewinding to explain how we got there.
 
-### CONTENT FILTER (MANDATORY - VIOLATION = REJECTED OUTPUT)
-
-YOUR HOOK WILL BE REJECTED if it contains ANY sensory descriptions of:
-- Smells (stench, rot, reek, odor)
-- Decay (rotting, decomposing, liquefying, festering, corpses in detail)
-- Physical gore (blood, viscera, piercing flesh, impaling, severed body parts)
-- Bodily harm descriptions (wounds, injuries, physical suffering)
-- Methods of death (stakes piercing, bodies on spears, corpses displayed)
-
-BATTLE COLD OPEN LANGUAGE (USE THIS INSTEAD):
-- Unit movement: "The phalanx advances", "Cavalry breaks through", "The line shatters"
-- Tactical outcomes: "The flank collapses", "The center holds", "40,000 men are now in the kill zone"
-- Gaming terms: "Kill zone", "spawn trap", "morale break", "unit deletion"
-- Statistics: "3-to-1 casualty rate", "40% routed in the first hour"
+${CONTENT_SAFETY_FILTER}
 
 BUILD TENSION THROUGH: Tactical chaos, collapsing formations, impossible odds, the moment everything goes wrong.
 NOT THROUGH: Physical descriptions of death, injury, or decay.
@@ -335,16 +302,7 @@ The hook has ALREADY dropped viewers into the climactic battle (cold open). The 
 
 The audience already knows the ending (they saw it in the cold open). Our job is to make them understand WHY it happened.
 
-### CONTENT FILTER (MANDATORY - VIOLATION = REJECTED OUTPUT)
-
-YOUR OUTLINE WILL BE REJECTED if key_points or chapter_analysis contain ANY:
-- Sensory descriptions (smells, decay, rotting, stench)
-- Gore imagery (blood, viscera, piercing flesh, impaling)
-- Physical suffering details (agony, screaming, wounds)
-
-ALL descriptions must be MECHANICAL and STATISTICAL. Example:
-- BAD: "Bodies piled in the streets, the stench overwhelming"
-- GOOD: "Unit density exceeded sustainable levels, causing a 40% morale debuff"
+${CONTENT_SAFETY_FILTER}
 
 ### INPUT DATA
 
@@ -582,25 +540,7 @@ The cold open ALREADY showed viewers the climactic battle moment. Now:
 - Batch 4 = RETURN to the cold open with full context
 - Batch 5 = Continue PAST the battle into aftermath
 
-### CONTENT FILTER (MANDATORY - VIOLATION = REJECTED OUTPUT)
-
-YOUR BATCH WILL BE REJECTED if it contains ANY of the following:
-- Smell descriptions: stench, reek, odor, rotting smell, "hit like a wall", "choked the air"
-- Decay imagery: rotting, decomposing, liquefying, festering, putrid, "decaying corpses"
-- Physical penetration: piercing flesh, impaling, puncturing, skewering, "stakes through bodies"
-- Bodily fluids: blood pooling, viscera, entrails, gore, pus, "turned the river red"
-- Physical agony: screaming in pain, writhing, suffering, agonizing death
-- Methods of death: "stakes bearing human forms", "corpses on display", "bodies sliding down stakes"
-
-SIMPLIFY OR DROP RULE:
-- If death detail is NOT critical → DROP IT ENTIRELY
-- If critical → simple statement: "X was killed" or "thousands were executed"
-- "20,000 stakes with bodies" → "20,000 executions displayed as a warning"
-- "impaled bodies" → "executed prisoners"
-- "the corpse displayed on a stake" → "killed and displayed as a message"
-
-This is NOT optional. There are NO exceptions, even for historically accurate events.
-Describe THAT units were deleted, not HOW they died.
+${CONTENT_SAFETY_FILTER}
 
 ### CURRENT PHASE
 
@@ -668,21 +608,7 @@ ${WAR_ROOM_STYLE.mandatory_terminology.join(', ')}
 - Gaming terminology: spawn points, kill zones, meta strategies, unit builds
 - Present tense for action: "The cavalry charges" NOT "The cavalry charged"
 
-### TRANSLATION GUIDE (Use These Patterns)
-
-**REQUIRED TRANSLATIONS — memorize these patterns:**
-
-| REJECTED (sensory) | APPROVED (mechanical) |
-|---|---|
-| "The stench of rotting bodies choked the air" | "Sanitation levels dropped, applying a morale debuff" |
-| "Blood turned the river red" | "Casualty rates spiked at the river crossing" |
-| "Soldiers screamed as arrows pierced their flesh" | "Ranged units deleted infantry at 3-to-1 efficiency" |
-| "Bodies piled high, decomposing in the sun" | "Unit density in kill zone exceeded sustainable levels" |
-| "Disease left soldiers covered in boils" | "Disease debuff reduced army strength by 40%" |
-| "Stakes piercing decaying corpses" | "Psychological deterrent deployment: 20,000 units displayed" |
-| "The smell of death forced retreat" | "Environmental debuff triggered forced withdrawal" |
-
-**RULE:** If you cannot describe something without gore, describe ONLY the tactical outcome or skip it entirely.
+${CONTENT_SAFETY_TRANSLATION_GUIDE}
 
 ### OUTPUT FORMAT
 
@@ -800,7 +726,7 @@ ${auditReport}
 ### TARGET PARAMETERS
 
 - Target duration: ${targetDuration} minutes
-- Target word count: ~${targetDuration * 150} words (150 words/minute speaking rate)
+- Target word count: ~${targetDuration * WORDS_PER_MINUTE} words (${WORDS_PER_MINUTE} words/minute speaking rate)
 - Maintain word count within ±10% of target
 
 ### REWRITING RULES (CRITICAL)

@@ -1,5 +1,6 @@
 import OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
+import { MODELS } from '@/lib/config/ai';
 
 let openaiClient: OpenAI | null = null;
 
@@ -40,7 +41,7 @@ export async function generateWithOpenAI(
   messages.push({ role: 'user', content: prompt });
 
   const response = await client.chat.completions.create({
-    model: 'gpt-4o',
+    model: MODELS.GPT4O,
     messages,
     temperature,
     max_tokens: maxTokens,

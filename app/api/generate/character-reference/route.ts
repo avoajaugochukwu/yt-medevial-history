@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { fal } from '@fal-ai/client';
+import { configureFal } from '@/lib/ai/fal';
+import { MODELS, ASPECT_RATIOS } from '@/lib/config/ai';
 import {
   CHARACTER_PORTRAIT_STYLE_SUFFIX,
   NEGATIVE_PROMPT_PORTRAIT,
@@ -27,12 +28,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Character data is required' }, { status: 400 });
     }
 
-    const apiKey = process.env.FAL_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json({ error: 'FAL_API_KEY is not configured' }, { status: 500 });
-    }
-
-    fal.config({ credentials: apiKey });
+    const fal = configureFal();
 
     // Build portrait-focused prompt
     const portraitPrompt = `Historical portrait of ${character.name}, ${character.role}.
@@ -47,13 +43,12 @@ ${CHARACTER_PORTRAIT_STYLE_SUFFIX}`;
     console.log(`[Character Reference] Prominence: ${character.prominence}`);
     console.log(`[Character Reference] Prompt length: ${portraitPrompt.length} characters`);
 
-    // Use nano-banana for portrait generation with 3:4 aspect ratio
-    const result = (await fal.subscribe('fal-ai/nano-banana', {
+    const result = (await fal.subscribe(MODELS.FAL_NANO_BANANA, {
       input: {
         prompt: portraitPrompt,
         negative_prompt: NEGATIVE_PROMPT_PORTRAIT,
         num_images: 1,
-        aspect_ratio: '3:4', // Portrait aspect ratio
+        aspect_ratio: ASPECT_RATIOS.PORTRAIT,
         seed: Math.floor(Math.random() * 1000000),
       },
       logs: false,
@@ -77,8 +72,8 @@ ${CHARACTER_PORTRAIT_STYLE_SUFFIX}`;
       character_id: character.id,
       image_url: imageUrl,
       prompt_used: portraitPrompt,
-      aspect_ratio: '3:4',
-      model: 'fal-ai/nano-banana',
+      aspect_ratio: ASPECT_RATIOS.PORTRAIT,
+      model: MODELS.FAL_NANO_BANANA,
     });
   } catch (error) {
     console.error('[Character Reference] Generation error:', error);
@@ -87,6 +82,7 @@ ${CHARACTER_PORTRAIT_STYLE_SUFFIX}`;
 
     return NextResponse.json(
       {
+        success: false,
         error: 'Failed to generate character reference',
         details: errorMessage,
       },

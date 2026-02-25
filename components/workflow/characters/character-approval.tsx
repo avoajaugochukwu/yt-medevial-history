@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useSessionStore } from '@/lib/store';
+import React, { useState, useEffect } from 'react';
 import type { CharacterWithReference, HistoricalEra } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,6 +28,7 @@ import {
   User,
   ImageIcon,
 } from 'lucide-react';
+import { useCharacterApproval } from '@/lib/hooks/use-character-approval';
 
 interface CharacterApprovalProps {
   script: string;
@@ -51,8 +51,6 @@ function CharacterCard({
   onRegenerate?: (character: CharacterWithReference) => void;
   showRegenerate?: boolean;
 }) {
-  console.log('[CharacterCard]', character.name, { imageUrl: character.reference_image_url, status: character.reference_generation_status });
-
   const isGenerating = character.reference_generation_status === 'generating';
   const isCompleted = character.reference_generation_status === 'completed';
   const isError = character.reference_generation_status === 'error';
@@ -68,7 +66,6 @@ function CharacterCard({
       `}
     >
       <CardContent className="p-4 space-y-3">
-        {/* Header: Name, Role, Prominence */}
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
@@ -81,18 +78,15 @@ function CharacterCard({
             </div>
             <p className="text-xs text-muted-foreground truncate">{character.role}</p>
           </div>
-          <div className="flex items-center gap-1">
-            <Badge
-              variant={isPrimary ? 'default' : 'secondary'}
-              className="text-xs flex items-center gap-1"
-            >
-              {isPrimary ? <Crown className="h-3 w-3" /> : <User className="h-3 w-3" />}
-              {isPrimary ? 'Primary' : 'Secondary'}
-            </Badge>
-          </div>
+          <Badge
+            variant={isPrimary ? 'default' : 'secondary'}
+            className="text-xs flex items-center gap-1"
+          >
+            {isPrimary ? <Crown className="h-3 w-3" /> : <User className="h-3 w-3" />}
+            {isPrimary ? 'Primary' : 'Secondary'}
+          </Badge>
         </div>
 
-        {/* Portrait Preview */}
         <div className="relative aspect-[3/4] bg-gray-100 rounded-lg overflow-hidden">
           {character.reference_image_url ? (
             <>
@@ -126,10 +120,8 @@ function CharacterCard({
           )}
         </div>
 
-        {/* Description */}
         <p className="text-xs text-gray-600 line-clamp-2">{character.description}</p>
 
-        {/* Action Buttons */}
         <div className="flex gap-2">
           <Button
             variant="outline"
@@ -200,7 +192,6 @@ function CharacterEditorDialog({
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          {/* Current Portrait */}
           {character.reference_image_url && (
             <div className="flex justify-center">
               <div className="w-48 aspect-[3/4] rounded-lg overflow-hidden">
@@ -214,11 +205,8 @@ function CharacterEditorDialog({
             </div>
           )}
 
-          {/* Visual Description */}
           <div className="space-y-2">
-            <Label htmlFor="visual-description">
-              Visual Description (for portrait generation)
-            </Label>
+            <Label htmlFor="visual-description">Visual Description (for portrait generation)</Label>
             <Textarea
               id="visual-description"
               value={visualDescription}
@@ -231,11 +219,8 @@ function CharacterEditorDialog({
             </p>
           </div>
 
-          {/* Historical Appearance */}
           <div className="space-y-2">
-            <Label htmlFor="historical-appearance">
-              Historical Period Appearance
-            </Label>
+            <Label htmlFor="historical-appearance">Historical Period Appearance</Label>
             <Textarea
               id="historical-appearance"
               value={historicalAppearance}
@@ -248,14 +233,9 @@ function CharacterEditorDialog({
             </p>
           </div>
 
-          {/* Actions */}
           <div className="flex justify-end gap-2 pt-4">
-            <Button variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button onClick={handleSave}>
-              Save Changes
-            </Button>
+            <Button variant="outline" onClick={onClose}>Cancel</Button>
+            <Button onClick={handleSave}>Save Changes</Button>
           </div>
         </div>
       </DialogContent>
@@ -264,180 +244,18 @@ function CharacterEditorDialog({
 }
 
 export function CharacterApproval({ script, era, onComplete, onSkip }: CharacterApprovalProps) {
-  const { characterSession, setCharacterSession, updateCharacter } = useSessionStore();
-  const [editingCharacter, setEditingCharacter] = useState<CharacterWithReference | null>(null);
-  const [generationProgress, setGenerationProgress] = useState(0);
-  const hasStartedRef = useRef(false);
-
-  const identifyCharacters = useCallback(async () => {
-    setCharacterSession({
-      characters: [],
-      status: 'identifying',
-    });
-
-    try {
-      const response = await fetch('/api/identify/characters', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ script, era }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to identify characters');
-      }
-
-      const data = await response.json();
-
-      setCharacterSession({
-        characters: data.characters,
-        status: 'awaiting_approval',
-      });
-    } catch (error) {
-      console.error('Character identification error:', error);
-      setCharacterSession({
-        characters: [],
-        status: 'error',
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
-    }
-  }, [script, era, setCharacterSession]);
-
-  // Identify characters on mount
-  useEffect(() => {
-    if (!characterSession && !hasStartedRef.current) {
-      hasStartedRef.current = true;
-      identifyCharacters();
-    }
-  }, [characterSession, identifyCharacters]);
-
-  const handleToggleApproval = (id: string) => {
-    updateCharacter(id, {
-      is_approved: !characterSession?.characters.find((c) => c.id === id)?.is_approved,
-    });
-  };
-
-  const handleEditSave = (id: string, updates: Partial<CharacterWithReference>) => {
-    updateCharacter(id, updates);
-  };
-
-  const generatePortraits = async () => {
-    if (!characterSession) return;
-
-    const approvedCharacters = characterSession.characters.filter((c) => c.is_approved);
-    if (approvedCharacters.length === 0) {
-      onComplete();
-      return;
-    }
-
-    setCharacterSession({
-      ...characterSession,
-      status: 'generating_references',
-    });
-
-    let completed = 0;
-
-    // Generate portraits in parallel (batch of 3 at a time)
-    const batchSize = 3;
-    for (let i = 0; i < approvedCharacters.length; i += batchSize) {
-      const batch = approvedCharacters.slice(i, i + batchSize);
-
-      await Promise.all(
-        batch.map(async (character) => {
-          // Mark as generating
-          updateCharacter(character.id, { reference_generation_status: 'generating' });
-
-          try {
-            const response = await fetch('/api/generate/character-reference', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ character }),
-            });
-
-            if (!response.ok) {
-              throw new Error('Failed to generate portrait');
-            }
-
-            const data = await response.json();
-            console.log('[generatePortraits] API response for', character.name, data);
-            console.log('[generatePortraits] image_url received:', data.image_url);
-
-            updateCharacter(character.id, {
-              reference_image_url: data.image_url,
-              reference_generation_status: 'completed',
-            });
-
-            const stored = useSessionStore.getState().characterSession?.characters.find(c => c.id === character.id);
-            console.log('[generatePortraits] Store after update:', character.name, { storedUrl: stored?.reference_image_url, storedStatus: stored?.reference_generation_status });
-          } catch (error) {
-            console.error(`Failed to generate portrait for ${character.name}:`, error);
-            updateCharacter(character.id, {
-              reference_generation_status: 'error',
-              error_message: error instanceof Error ? error.message : 'Unknown error',
-            });
-          }
-
-          completed++;
-          setGenerationProgress(Math.round((completed / approvedCharacters.length) * 100));
-        })
-      );
-    }
-
-    // Transition to review state (not complete - let user review first)
-    // FIX: Read fresh state from store — the closure `characterSession` is stale
-    // and would wipe all the URLs that updateCharacter just set
-    const latestSession = useSessionStore.getState().characterSession;
-    console.log('[generatePortraits] Final session before status change:', latestSession?.characters.map(c => ({ name: c.name, url: c.reference_image_url, status: c.reference_generation_status })));
-    console.log('[generatePortraits] Closure session (stale, NOT used):', characterSession?.characters.map(c => ({ name: c.name, url: c.reference_image_url, status: c.reference_generation_status })));
-    if (latestSession) {
-      setCharacterSession({
-        ...latestSession,
-        status: 'review_portraits',
-      });
-    }
-  };
-
-  // Regenerate a single portrait
-  const regeneratePortrait = async (character: CharacterWithReference) => {
-    // Mark as generating
-    updateCharacter(character.id, { reference_generation_status: 'generating' });
-
-    try {
-      const response = await fetch('/api/generate/character-reference', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ character }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to regenerate portrait');
-      }
-
-      const data = await response.json();
-
-      updateCharacter(character.id, {
-        reference_image_url: data.image_url,
-        reference_generation_status: 'completed',
-        error_message: undefined,
-      });
-    } catch (error) {
-      console.error(`Failed to regenerate portrait for ${character.name}:`, error);
-      updateCharacter(character.id, {
-        reference_generation_status: 'error',
-        error_message: error instanceof Error ? error.message : 'Unknown error',
-      });
-    }
-  };
-
-  // Confirm and continue to scenes
-  const handleContinueToScenes = () => {
-    if (!characterSession) return;
-
-    setCharacterSession({
-      ...characterSession,
-      status: 'complete',
-    });
-    onComplete();
-  };
+  const {
+    characterSession,
+    editingCharacter,
+    setEditingCharacter,
+    generationProgress,
+    identifyCharacters,
+    handleToggleApproval,
+    handleEditSave,
+    generatePortraits,
+    regeneratePortrait,
+    handleContinueToScenes,
+  } = useCharacterApproval(script, era, onComplete);
 
   // Loading state
   if (!characterSession || characterSession.status === 'identifying') {
@@ -470,9 +288,7 @@ export function CharacterApproval({ script, era, onComplete, onSkip }: Character
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Retry
               </Button>
-              <Button variant="outline" onClick={onSkip}>
-                Skip Characters
-              </Button>
+              <Button variant="outline" onClick={onSkip}>Skip Characters</Button>
             </div>
           </div>
         </CardContent>
@@ -499,7 +315,6 @@ export function CharacterApproval({ script, era, onComplete, onSkip }: Character
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Progress */}
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span>Progress</span>
@@ -508,7 +323,6 @@ export function CharacterApproval({ script, era, onComplete, onSkip }: Character
             <Progress value={generationProgress} />
           </div>
 
-          {/* Character Grid */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {characterSession.characters
               .filter((c) => c.is_approved)
@@ -526,7 +340,7 @@ export function CharacterApproval({ script, era, onComplete, onSkip }: Character
     );
   }
 
-  // Review portraits state - user can review and regenerate before continuing
+  // Review portraits state
   if (characterSession.status === 'review_portraits') {
     const approvedCharacters = characterSession.characters.filter((c) => c.is_approved);
     const completedCount = approvedCharacters.filter(
@@ -553,7 +367,6 @@ export function CharacterApproval({ script, era, onComplete, onSkip }: Character
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Character Grid with regenerate buttons */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {approvedCharacters.map((character) => (
               <CharacterCard
@@ -567,23 +380,15 @@ export function CharacterApproval({ script, era, onComplete, onSkip }: Character
             ))}
           </div>
 
-          {/* Actions */}
           <div className="flex items-center justify-between pt-4 border-t">
             <p className="text-sm text-muted-foreground">
               {completedCount} successful, {errorCount} failed
             </p>
             <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={onSkip}
-                disabled={isAnyGenerating}
-              >
+              <Button variant="outline" onClick={onSkip} disabled={isAnyGenerating}>
                 Skip Characters
               </Button>
-              <Button
-                onClick={handleContinueToScenes}
-                disabled={isAnyGenerating || completedCount === 0}
-              >
+              <Button onClick={handleContinueToScenes} disabled={isAnyGenerating || completedCount === 0}>
                 <CheckCircle className="h-4 w-4 mr-2" />
                 Continue to Scenes
               </Button>
@@ -591,7 +396,6 @@ export function CharacterApproval({ script, era, onComplete, onSkip }: Character
           </div>
         </CardContent>
 
-        {/* Character Editor Dialog */}
         <CharacterEditorDialog
           character={editingCharacter}
           isOpen={!!editingCharacter}
@@ -621,7 +425,6 @@ export function CharacterApproval({ script, era, onComplete, onSkip }: Character
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Character Grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {characterSession.characters.map((character) => (
             <CharacterCard
@@ -633,15 +436,12 @@ export function CharacterApproval({ script, era, onComplete, onSkip }: Character
           ))}
         </div>
 
-        {/* Actions */}
         <div className="flex items-center justify-between pt-4 border-t">
           <p className="text-sm text-muted-foreground">
             {approvedCount} of {characterSession.characters.length} characters selected
           </p>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={onSkip}>
-              Skip Characters
-            </Button>
+            <Button variant="outline" onClick={onSkip}>Skip Characters</Button>
             <Button onClick={generatePortraits} disabled={approvedCount === 0}>
               <Sparkles className="h-4 w-4 mr-2" />
               Generate Portraits ({approvedCount})
@@ -650,7 +450,6 @@ export function CharacterApproval({ script, era, onComplete, onSkip }: Character
         </div>
       </CardContent>
 
-      {/* Character Editor Dialog */}
       <CharacterEditorDialog
         character={editingCharacter}
         isOpen={!!editingCharacter}

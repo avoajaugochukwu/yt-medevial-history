@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Card,
   CardHeader,
@@ -24,271 +24,50 @@ import {
   Wand2,
   Type,
 } from 'lucide-react';
-import toast from 'react-hot-toast';
-import type {
-  YouTubeExtraction,
-  ScriptAnalysis,
-  RewrittenScript,
-  RepurposeSession,
-} from '@/lib/types';
-import { useSessionStore } from '@/lib/store';
+import { useRepurposeWorkflow, type RepurposeStep } from '@/lib/hooks/use-repurpose-workflow';
 
-type StepStatus = 'pending' | 'in_progress' | 'completed' | 'error';
+function getStepIcon(step: RepurposeStep) {
+  if (step.status === 'completed') return <Check className="h-5 w-5 text-green-600" />;
+  if (step.status === 'in_progress')
+    return <Loader2 className="h-5 w-5 text-primary animate-spin" />;
+  if (step.status === 'error') return <span className="text-red-600">✗</span>;
+  return step.icon;
+}
 
-interface Step {
-  number: number;
-  label: string;
-  icon: React.ReactNode;
-  status: StepStatus;
+function getScoreColor(score: number) {
+  if (score >= 8) return 'text-green-600 bg-green-100 dark:bg-green-900/30';
+  if (score >= 6) return 'text-yellow-600 bg-yellow-100 dark:bg-yellow-900/30';
+  return 'text-red-600 bg-red-100 dark:bg-red-900/30';
 }
 
 export default function RewritePage() {
-  const { setRepurposeSession, updateRepurposeSession } = useSessionStore();
-
-  // Form state
-  const [youtubeUrl, setYoutubeUrl] = useState('');
-
-  // Generation state
-  const [status, setStatus] = useState<RepurposeSession['status']>('idle');
-  const [steps, setSteps] = useState<Step[]>([
-    {
-      number: 1,
-      label: 'Extracting transcript',
-      icon: <Youtube className="h-4 w-4" />,
-      status: 'pending',
-    },
-    {
-      number: 2,
-      label: 'Analyzing script quality',
-      icon: <BarChart3 className="h-4 w-4" />,
-      status: 'pending',
-    },
-    {
-      number: 3,
-      label: 'Rewriting with retention tactics',
-      icon: <Wand2 className="h-4 w-4" />,
-      status: 'pending',
-    },
-    {
-      number: 4,
-      label: 'Generating title options',
-      icon: <Type className="h-4 w-4" />,
-      status: 'pending',
-    },
-  ]);
-
-  // Generated data
-  const [extraction, setExtraction] = useState<YouTubeExtraction | null>(null);
-  const [analysis, setAnalysis] = useState<ScriptAnalysis | null>(null);
-  const [rewrittenScript, setRewrittenScript] = useState<RewrittenScript | null>(null);
-  const [titles, setTitles] = useState<string[]>([]);
-
-  // UI state
-  const [copied, setCopied] = useState(false);
-  const [copiedTitle, setCopiedTitle] = useState<number | null>(null);
-  const [showAnalysis, setShowAnalysis] = useState(true);
-  const [showOriginal, setShowOriginal] = useState(false);
-
-  const updateStepStatus = (stepNumber: number, newStatus: StepStatus) => {
-    setSteps((prev) =>
-      prev.map((step) =>
-        step.number === stepNumber ? { ...step, status: newStatus } : step
-      )
-    );
+  const stepIcons = {
+    youtube: <Youtube className="h-4 w-4" />,
+    barChart: <BarChart3 className="h-4 w-4" />,
+    wand: <Wand2 className="h-4 w-4" />,
+    type: <Type className="h-4 w-4" />,
   };
 
-  const handleGenerate = async () => {
-    // Validation
-    if (!youtubeUrl.trim()) {
-      toast.error('Please enter a YouTube URL');
-      return;
-    }
-
-    // Reset state
-    setStatus('extracting');
-    setSteps((prev) => prev.map((step) => ({ ...step, status: 'pending' as StepStatus })));
-    setExtraction(null);
-    setAnalysis(null);
-    setRewrittenScript(null);
-    setTitles([]);
-
-    // Initialize session in store
-    setRepurposeSession({
-      youtubeUrl,
-      extraction: null,
-      analysis: null,
-      rewrittenScript: null,
-      status: 'extracting',
-    });
-
-    try {
-      // ============================================================================
-      // STEP 1: Extract from YouTube
-      // ============================================================================
-      updateStepStatus(1, 'in_progress');
-
-      const extractResponse = await fetch('/api/repurpose/extract', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: youtubeUrl }),
-      });
-
-      if (!extractResponse.ok) {
-        const errorData = await extractResponse.json();
-        throw new Error(errorData.details || errorData.error || 'Extraction failed');
-      }
-
-      const extractData = await extractResponse.json();
-      const extractedData: YouTubeExtraction = extractData.extraction;
-      setExtraction(extractedData);
-      updateRepurposeSession({ extraction: extractedData });
-      updateStepStatus(1, 'completed');
-
-      console.log('[Step 1] Extraction complete:', extractedData.transcript.wordCount, 'words');
-
-      // ============================================================================
-      // STEP 2: Analyze Script
-      // ============================================================================
-      setStatus('analyzing');
-      updateRepurposeSession({ status: 'analyzing' });
-      updateStepStatus(2, 'in_progress');
-
-      const analyzeResponse = await fetch('/api/repurpose/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ extraction: extractedData }),
-      });
-
-      if (!analyzeResponse.ok) {
-        const errorData = await analyzeResponse.json();
-        throw new Error(errorData.details || errorData.error || 'Analysis failed');
-      }
-
-      const analyzeData = await analyzeResponse.json();
-      const analysisResult: ScriptAnalysis = analyzeData.analysis;
-      setAnalysis(analysisResult);
-      updateRepurposeSession({ analysis: analysisResult });
-      updateStepStatus(2, 'completed');
-
-      console.log('[Step 2] Analysis complete. Score:', analysisResult.overallScore);
-
-      // ============================================================================
-      // STEP 3: Rewrite Script
-      // ============================================================================
-      setStatus('rewriting');
-      updateRepurposeSession({ status: 'rewriting' });
-      updateStepStatus(3, 'in_progress');
-
-      const rewriteResponse = await fetch('/api/repurpose/rewrite', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ extraction: extractedData, analysis: analysisResult }),
-      });
-
-      if (!rewriteResponse.ok) {
-        let errorMessage = 'Rewrite failed';
-        try {
-          const errorData = await rewriteResponse.json();
-          errorMessage = errorData.details || errorData.error || errorMessage;
-        } catch {
-          // Response wasn't valid JSON, use default message
-        }
-        throw new Error(errorMessage);
-      }
-
-      const rewriteData = await rewriteResponse.json();
-      const rewrittenResult: RewrittenScript = rewriteData.rewrittenScript;
-      setRewrittenScript(rewrittenResult);
-      updateRepurposeSession({ rewrittenScript: rewrittenResult, status: 'complete' });
-      updateStepStatus(3, 'completed');
-
-      console.log('[Step 3] Rewrite complete. Words:', rewrittenResult.wordCount);
-
-      // ============================================================================
-      // STEP 4: Generate Titles
-      // ============================================================================
-      updateStepStatus(4, 'in_progress');
-
-      const titlesResponse = await fetch('/api/repurpose/titles', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ script: rewrittenResult.content }),
-      });
-
-      if (!titlesResponse.ok) {
-        const errorData = await titlesResponse.json();
-        throw new Error(errorData.details || errorData.error || 'Title generation failed');
-      }
-
-      const titlesData = await titlesResponse.json();
-      const generatedTitles: string[] = titlesData.titles;
-      setTitles(generatedTitles);
-      updateStepStatus(4, 'completed');
-
-      console.log('[Step 4] Titles generated:', generatedTitles);
-
-      setStatus('complete');
-      toast.success('Script rewritten and titles generated!');
-    } catch (error) {
-      console.error('Repurpose error:', error);
-
-      // Mark current step as error
-      const currentStep = steps.find((s) => s.status === 'in_progress');
-      if (currentStep) {
-        updateStepStatus(currentStep.number, 'error');
-      }
-
-      setStatus('error');
-      updateRepurposeSession({
-        status: 'error',
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
-
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      toast.error(`Failed: ${errorMessage}`);
-    }
-  };
-
-  const handleCopy = async () => {
-    if (rewrittenScript?.content) {
-      await navigator.clipboard.writeText(rewrittenScript.content);
-      setCopied(true);
-      toast.success('Script copied to clipboard!');
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
-
-  const handleReset = () => {
-    setStatus('idle');
-    setSteps((prev) => prev.map((step) => ({ ...step, status: 'pending' as StepStatus })));
-    setExtraction(null);
-    setAnalysis(null);
-    setRewrittenScript(null);
-    setTitles([]);
-    setYoutubeUrl('');
-    setRepurposeSession(null);
-  };
-
-  const handleCopyTitle = async (title: string, index: number) => {
-    await navigator.clipboard.writeText(title);
-    setCopiedTitle(index);
-    toast.success('Title copied!');
-    setTimeout(() => setCopiedTitle(null), 2000);
-  };
-
-  const getStepIcon = (step: Step) => {
-    if (step.status === 'completed') return <Check className="h-5 w-5 text-green-600" />;
-    if (step.status === 'in_progress')
-      return <Loader2 className="h-5 w-5 text-primary animate-spin" />;
-    if (step.status === 'error') return <span className="text-red-600">✗</span>;
-    return step.icon;
-  };
-
-  const getScoreColor = (score: number) => {
-    if (score >= 8) return 'text-green-600 bg-green-100 dark:bg-green-900/30';
-    if (score >= 6) return 'text-yellow-600 bg-yellow-100 dark:bg-yellow-900/30';
-    return 'text-red-600 bg-red-100 dark:bg-red-900/30';
-  };
+  const {
+    youtubeUrl,
+    setYoutubeUrl,
+    status,
+    steps,
+    extraction,
+    analysis,
+    rewrittenScript,
+    titles,
+    copied,
+    copiedTitle,
+    showAnalysis,
+    setShowAnalysis,
+    showOriginal,
+    setShowOriginal,
+    handleGenerate,
+    handleCopy,
+    handleReset,
+    handleCopyTitle,
+  } = useRepurposeWorkflow(stepIcons);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
@@ -307,7 +86,6 @@ export default function RewritePage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* YouTube URL Input */}
               <div className="space-y-2">
                 <Label htmlFor="youtubeUrl" className="text-base font-medium">
                   YouTube Video URL
@@ -324,7 +102,6 @@ export default function RewritePage() {
                 </p>
               </div>
 
-              {/* Info Box */}
               <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                 <h4 className="font-semibold text-blue-800 dark:text-blue-200 mb-2">
                   What happens:
@@ -332,15 +109,11 @@ export default function RewritePage() {
                 <ol className="text-sm text-blue-700 dark:text-blue-300 space-y-1 list-decimal list-inside">
                   <li>Extract transcript from the video</li>
                   <li>Analyze script for hook quality, retention tactics, and structure</li>
-                  <li>
-                    Rewrite the script with in media res opening, strong hooks, and retention
-                    tactics
-                  </li>
+                  <li>Rewrite the script with in media res opening, strong hooks, and retention tactics</li>
                   <li>Generate 3 title options based on the rewritten script</li>
                 </ol>
               </div>
 
-              {/* Target Info */}
               <div className="grid grid-cols-3 gap-4 text-center">
                 <div className="bg-muted/50 p-3 rounded-lg">
                   <div className="text-2xl font-bold">25</div>
@@ -356,7 +129,6 @@ export default function RewritePage() {
                 </div>
               </div>
 
-              {/* Generate Button */}
               <Button
                 onClick={handleGenerate}
                 className="w-full h-14 text-lg font-medium bg-primary hover:bg-primary/90"
@@ -388,17 +160,12 @@ export default function RewritePage() {
                     </span>
                   </div>
 
-                  {/* Collapsible Original Transcript */}
                   <div>
                     <button
                       onClick={() => setShowOriginal(!showOriginal)}
                       className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
                     >
-                      {showOriginal ? (
-                        <ChevronUp className="h-4 w-4" />
-                      ) : (
-                        <ChevronDown className="h-4 w-4" />
-                      )}
+                      {showOriginal ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                       {showOriginal ? 'Hide' : 'Show'} original transcript
                     </button>
                     {showOriginal && (
@@ -433,9 +200,7 @@ export default function RewritePage() {
                     >
                       <div className="flex-shrink-0 w-6">{getStepIcon(step)}</div>
                       <div className="flex-1">
-                        <p
-                          className={`text-sm ${step.status === 'in_progress' ? 'font-medium' : ''}`}
-                        >
+                        <p className={`text-sm ${step.status === 'in_progress' ? 'font-medium' : ''}`}>
                           {step.label}
                         </p>
                       </div>
@@ -457,52 +222,32 @@ export default function RewritePage() {
                       <BarChart3 className="h-5 w-5" />
                       Script Analysis
                     </CardTitle>
-                    {showAnalysis ? (
-                      <ChevronUp className="h-5 w-5" />
-                    ) : (
-                      <ChevronDown className="h-5 w-5" />
-                    )}
+                    {showAnalysis ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
                   </button>
                 </CardHeader>
                 {showAnalysis && (
                   <CardContent className="space-y-4">
-                    {/* Score Overview */}
                     <div className="grid grid-cols-4 gap-3">
-                      <div
-                        className={`text-center p-3 rounded-lg ${getScoreColor(analysis.overallScore)}`}
-                      >
+                      <div className={`text-center p-3 rounded-lg ${getScoreColor(analysis.overallScore)}`}>
                         <div className="text-2xl font-bold">{analysis.overallScore}/10</div>
                         <div className="text-xs">Overall</div>
                       </div>
-                      <div
-                        className={`text-center p-3 rounded-lg ${getScoreColor(analysis.hookQuality.score)}`}
-                      >
+                      <div className={`text-center p-3 rounded-lg ${getScoreColor(analysis.hookQuality.score)}`}>
                         <div className="text-2xl font-bold">{analysis.hookQuality.score}/10</div>
                         <div className="text-xs">Hook</div>
                       </div>
-                      <div
-                        className={`text-center p-3 rounded-lg ${getScoreColor(analysis.retentionTactics.score)}`}
-                      >
-                        <div className="text-2xl font-bold">
-                          {analysis.retentionTactics.score}/10
-                        </div>
+                      <div className={`text-center p-3 rounded-lg ${getScoreColor(analysis.retentionTactics.score)}`}>
+                        <div className="text-2xl font-bold">{analysis.retentionTactics.score}/10</div>
                         <div className="text-xs">Retention</div>
                       </div>
-                      <div
-                        className={`text-center p-3 rounded-lg ${getScoreColor(analysis.structureAnalysis.score)}`}
-                      >
-                        <div className="text-2xl font-bold">
-                          {analysis.structureAnalysis.score}/10
-                        </div>
+                      <div className={`text-center p-3 rounded-lg ${getScoreColor(analysis.structureAnalysis.score)}`}>
+                        <div className="text-2xl font-bold">{analysis.structureAnalysis.score}/10</div>
                         <div className="text-xs">Structure</div>
                       </div>
                     </div>
 
-                    {/* Key Strengths */}
                     <div>
-                      <h4 className="font-semibold text-green-700 dark:text-green-400 text-sm mb-2">
-                        Key Strengths
-                      </h4>
+                      <h4 className="font-semibold text-green-700 dark:text-green-400 text-sm mb-2">Key Strengths</h4>
                       <ul className="text-sm space-y-1">
                         {analysis.keyStrengths.map((strength, i) => (
                           <li key={i} className="flex items-start gap-2">
@@ -513,11 +258,8 @@ export default function RewritePage() {
                       </ul>
                     </div>
 
-                    {/* Critical Improvements */}
                     <div>
-                      <h4 className="font-semibold text-red-700 dark:text-red-400 text-sm mb-2">
-                        Areas to Improve
-                      </h4>
+                      <h4 className="font-semibold text-red-700 dark:text-red-400 text-sm mb-2">Areas to Improve</h4>
                       <ul className="text-sm space-y-1">
                         {analysis.criticalImprovements.map((improvement, i) => (
                           <li key={i} className="flex items-start gap-2">
@@ -528,12 +270,9 @@ export default function RewritePage() {
                       </ul>
                     </div>
 
-                    {/* Missing Tactics */}
                     {(analysis.retentionTactics?.missingTactics?.length ?? 0) > 0 && (
                       <div>
-                        <h4 className="font-semibold text-amber-700 dark:text-amber-400 text-sm mb-2">
-                          Missing Retention Tactics
-                        </h4>
+                        <h4 className="font-semibold text-amber-700 dark:text-amber-400 text-sm mb-2">Missing Retention Tactics</h4>
                         <div className="flex flex-wrap gap-2">
                           {analysis.retentionTactics.missingTactics.map((tactic, i) => (
                             <span
@@ -562,32 +301,21 @@ export default function RewritePage() {
                     </CardTitle>
                     <Button variant="outline" size="sm" onClick={handleCopy}>
                       {copied ? (
-                        <>
-                          <Check className="mr-2 h-4 w-4" />
-                          Copied
-                        </>
+                        <><Check className="mr-2 h-4 w-4" />Copied</>
                       ) : (
-                        <>
-                          <Copy className="mr-2 h-4 w-4" />
-                          Copy
-                        </>
+                        <><Copy className="mr-2 h-4 w-4" />Copy</>
                       )}
                     </Button>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {/* Stats */}
                   <div className="grid grid-cols-3 gap-4">
                     <div className="bg-muted/50 p-3 rounded text-center">
-                      <div className="text-xl font-bold">
-                        {rewrittenScript.wordCount.toLocaleString()}
-                      </div>
+                      <div className="text-xl font-bold">{rewrittenScript.wordCount.toLocaleString()}</div>
                       <div className="text-xs text-muted-foreground">Words</div>
                     </div>
                     <div className="bg-muted/50 p-3 rounded text-center">
-                      <div className="text-xl font-bold">
-                        ~{rewrittenScript.estimatedDuration} min
-                      </div>
+                      <div className="text-xl font-bold">~{rewrittenScript.estimatedDuration} min</div>
                       <div className="text-xs text-muted-foreground">Duration</div>
                     </div>
                     <div className="bg-muted/50 p-3 rounded text-center">
@@ -596,22 +324,17 @@ export default function RewritePage() {
                     </div>
                   </div>
 
-                  {/* Applied Techniques */}
                   <div>
                     <h4 className="text-sm font-medium mb-2">Applied Techniques:</h4>
                     <div className="flex flex-wrap gap-2">
                       {rewrittenScript.appliedTechniques.map((technique, i) => (
-                        <span
-                          key={i}
-                          className="text-xs bg-primary/10 text-primary px-2 py-1 rounded"
-                        >
+                        <span key={i} className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
                           {technique}
                         </span>
                       ))}
                     </div>
                   </div>
 
-                  {/* Script Content */}
                   <div className="bg-card border border-border rounded-lg p-4 max-h-[500px] overflow-y-auto">
                     <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed">
                       {rewrittenScript.content}
@@ -644,15 +367,9 @@ export default function RewritePage() {
                         className="shrink-0"
                       >
                         {copiedTitle === index ? (
-                          <>
-                            <Check className="h-4 w-4 mr-1" />
-                            Copied
-                          </>
+                          <><Check className="h-4 w-4 mr-1" />Copied</>
                         ) : (
-                          <>
-                            <Copy className="h-4 w-4 mr-1" />
-                            Copy
-                          </>
+                          <><Copy className="h-4 w-4 mr-1" />Copy</>
                         )}
                       </Button>
                     </div>

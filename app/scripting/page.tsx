@@ -1,277 +1,44 @@
 "use client";
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Sparkles, Copy, Check, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
-import toast from 'react-hot-toast';
-import type { TacticalResearch, RecursiveScript, GamifiedWarSection } from '@/lib/types';
-import { useSessionStore } from '@/lib/store';
-import { useRouter } from 'next/navigation';
+import type { GamifiedWarSection } from '@/lib/types';
+import { useScriptingWorkflow, type Step } from '@/lib/hooks/use-scripting-workflow';
+import { WORDS_PER_MINUTE } from '@/lib/config/content';
 
-type GenerationStatus = 'idle' | 'generating' | 'completed' | 'error';
-type StepStatus = 'pending' | 'in_progress' | 'completed' | 'error';
+type StepStatus = Step['status'];
 
-interface Step {
-  number: number;
-  label: string;
-  status: StepStatus;
+function getStepIcon(stepStatus: StepStatus) {
+  if (stepStatus === 'completed') return <Check className="h-5 w-5 text-green-600" />;
+  if (stepStatus === 'in_progress')
+    return <Loader2 className="h-5 w-5 text-primary animate-spin" />;
+  if (stepStatus === 'error') return <span className="text-red-600">✗</span>;
+  return <span className="text-muted-foreground">○</span>;
 }
 
 export default function WarRoomScriptingPage() {
-  const router = useRouter();
-  const { setHistoricalTopic, setTacticalResearch, setRecursiveScript, setRecursiveProgress } = useSessionStore();
-
-  // Form inputs
-  const [title, setTitle] = useState('');
-  const [targetDuration, setTargetDuration] = useState<number>(35); // Default to War Room standard
-
-  // Generation state
-  const [status, setStatus] = useState<GenerationStatus>('idle');
-  const [steps, setSteps] = useState<Step[]>([
-    { number: 1, label: 'Extracting Tactical Telemetry', status: 'pending' },
-    { number: 2, label: 'Generating Hook', status: 'pending' },
-    { number: 3, label: 'Building Gamified War Outline', status: 'pending' },
-    { number: 4, label: 'Generating Batch 1/5 (The Matchup)', status: 'pending' },
-    { number: 5, label: 'Generating Batch 2/5 (Unit Deep Dive)', status: 'pending' },
-    { number: 6, label: 'Generating Batch 3/5 (Tactical Turn)', status: 'pending' },
-    { number: 7, label: 'Generating Batch 4/5 (Kill Screen)', status: 'pending' },
-    { number: 8, label: 'Generating Batch 5/5 (Aftermath)', status: 'pending' },
-    { number: 9, label: 'Validating Style Compliance', status: 'pending' },
-    { number: 10, label: 'Analyzing Repetition & Quality', status: 'pending' },
-    { number: 11, label: 'Polishing Narrative', status: 'pending' },
-  ]);
-
-  // Generated data
-  const [researchData, setResearchData] = useState<TacticalResearch | null>(null);
-  const [scriptData, setScriptDataLocal] = useState<RecursiveScript | null>(null);
-  const [artStyle, setArtStyle] = useState<string | undefined>(undefined);
-
-  // UI state
-  const [copied, setCopied] = useState(false);
-  const [showOutline, setShowOutline] = useState(false);
-  const [currentBatch, setCurrentBatch] = useState(0);
-
-  const updateStepStatus = (stepNumber: number, newStatus: StepStatus) => {
-    setSteps((prev) =>
-      prev.map((step) => (step.number === stepNumber ? { ...step, status: newStatus } : step))
-    );
-  };
-
-  const handleGenerate = async () => {
-    // Validation
-    if (!title.trim()) {
-      toast.error('Please provide a battle/engagement title');
-      return;
-    }
-
-    if (!targetDuration || targetDuration <= 0 || targetDuration > 40) {
-      toast.error('Target duration must be between 1 and 40 minutes');
-      return;
-    }
-
-    setStatus('generating');
-
-    // Reset all steps
-    setSteps((prev) => prev.map((step) => ({ ...step, status: 'pending' as StepStatus })));
-
-    // Reset generated data
-    setResearchData(null);
-    setScriptDataLocal(null);
-    setCurrentBatch(0);
-
-    try {
-      // ============================================================================
-      // STEP 1: Tactical Research (Perplexity)
-      // ============================================================================
-      updateStepStatus(1, 'in_progress');
-
-      const step1Response = await fetch('/api/research/historical', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, targetDuration }),
-      });
-
-      if (!step1Response.ok) {
-        const errorData = await step1Response.json();
-        throw new Error(errorData.error || 'Tactical research failed');
-      }
-
-      const step1Data = await step1Response.json();
-      const research: TacticalResearch = step1Data.research;
-      const generatedArtStyle: string | undefined = step1Data.artStyle;
-
-      setResearchData(research);
-      setArtStyle(generatedArtStyle);
-      setTacticalResearch(research);
-      updateStepStatus(1, 'completed');
-
-      console.log('[Step 1] Tactical research completed:', research);
-
-      // ============================================================================
-      // STEPS 2-11: Recursive Script Generation
-      // ============================================================================
-      // Mark all batch steps as starting
-      updateStepStatus(2, 'in_progress');
-
-      // Update progress for recursive generation
-      setRecursiveProgress({
-        phase: 'hook',
-        current_batch: 0,
-        total_batches: 5,
-        current_word_count: 0,
-        target_word_count: targetDuration * 150,
-      });
-
-      const scriptResponse = await fetch('/api/generate/final-script', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title,
-          research: JSON.stringify(research),
-          targetDuration,
-        }),
-      });
-
-      if (!scriptResponse.ok) {
-        const errorData = await scriptResponse.json();
-        throw new Error(errorData.error || 'Script generation failed');
-      }
-
-      const scriptResult = await scriptResponse.json();
-      let script: RecursiveScript = scriptResult.script;
-
-      // Mark steps 2-9 as completed
-      for (let i = 2; i <= 9; i++) {
-        updateStepStatus(i, 'completed');
-      }
-
-      // ============================================================================
-      // STEP 10: Analyze Repetition & Quality (OpenAI GPT-4o)
-      // ============================================================================
-      updateStepStatus(10, 'in_progress');
-
-      const auditResponse = await fetch('/api/generate/analyze-repetition', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ script: script.full_script }),
-      });
-
-      if (!auditResponse.ok) {
-        const errorData = await auditResponse.json();
-        throw new Error(errorData.error || 'Script audit failed');
-      }
-
-      const auditData = await auditResponse.json();
-      console.log('[Step 10] Audit complete');
-      updateStepStatus(10, 'completed');
-
-      // ============================================================================
-      // STEP 11: Polish Narrative (Claude Sonnet)
-      // ============================================================================
-      updateStepStatus(11, 'in_progress');
-
-      const polishResponse = await fetch('/api/generate/polish-script', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          rawScript: script.full_script,
-          auditReport: auditData.report,
-          targetDuration,
-        }),
-      });
-
-      if (!polishResponse.ok) {
-        const errorData = await polishResponse.json();
-        throw new Error(errorData.error || 'Script polish failed');
-      }
-
-      const polishData = await polishResponse.json();
-      console.log('[Step 11] Polish complete, word count:', polishData.wordCount);
-      updateStepStatus(11, 'completed');
-
-      // Update script with polished content
-      script = {
-        ...script,
-        polished_content: polishData.polishedContent,
-        polished_word_count: polishData.wordCount,
-        audit_report: auditData.report,
-      };
-
-      setScriptDataLocal(script);
-      setRecursiveScript(script);
-      setRecursiveProgress({
-        phase: 'complete',
-        current_batch: 5,
-        total_batches: 5,
-        current_word_count: script.polished_word_count || script.total_word_count,
-        target_word_count: targetDuration * 150,
-      });
-
-      // Save to store (era is inferred from research)
-      setHistoricalTopic({
-        title,
-        era: research.era,
-        tone: 'Documentary', // War Room uses tactical documentary tone
-        created_at: new Date(),
-        artStyle: generatedArtStyle
-      });
-
-      setStatus('completed');
-
-      // Show style violations as warnings if any
-      if (scriptResult.metadata?.style_violations?.length > 0) {
-        toast.success(`Script generated and polished with ${scriptResult.metadata.style_violations.length} style warning(s)`);
-      } else {
-        toast.success('War Room tactical documentary generated and polished!');
-      }
-    } catch (error) {
-      console.error('Generation error:', error);
-
-      // Mark the current in-progress step as error
-      const currentStep = steps.find((s) => s.status === 'in_progress');
-      if (currentStep) {
-        updateStepStatus(currentStep.number, 'error');
-      }
-
-      setStatus('error');
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      toast.error(`Generation failed: ${errorMessage}`);
-    }
-  };
-
-  const handleCopy = async () => {
-    // Copy polished content if available, otherwise fall back to raw script
-    const textToCopy = scriptData?.polished_content || scriptData?.full_script;
-    if (textToCopy) {
-      await navigator.clipboard.writeText(textToCopy);
-      setCopied(true);
-      toast.success('Script copied to clipboard!');
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
-
-  const handleProceedToScenes = () => {
-    if (scriptData?.full_script) {
-      router.push('/scenes');
-    }
-  };
-
-  const getStepIcon = (stepStatus: StepStatus) => {
-    if (stepStatus === 'completed') return <Check className="h-5 w-5 text-green-600" />;
-    if (stepStatus === 'in_progress')
-      return <Loader2 className="h-5 w-5 text-primary animate-spin" />;
-    if (stepStatus === 'error') return <span className="text-red-600">✗</span>;
-    return <span className="text-muted-foreground">○</span>;
-  };
-
-  const estimatedDuration = scriptData?.target_duration ||
-    (scriptData?.total_word_count ? Math.round((scriptData.total_word_count / 150) * 10) / 10 : 0);
-
-  // Calculate completed batches for progress bar
-  const completedBatches = scriptData?.batches?.length || currentBatch;
+  const {
+    title,
+    setTitle,
+    targetDuration,
+    setTargetDuration,
+    status,
+    steps,
+    scriptData,
+    copied,
+    showOutline,
+    setShowOutline,
+    completedBatches,
+    estimatedDuration,
+    handleGenerate,
+    handleCopy,
+    handleProceedToScenes,
+    handleReset,
+  } = useScriptingWorkflow();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
@@ -287,7 +54,6 @@ export default function WarRoomScriptingPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Title */}
               <div className="space-y-2">
                 <Label htmlFor="title" className="text-base font-medium">
                   Battle / Engagement
@@ -301,7 +67,6 @@ export default function WarRoomScriptingPage() {
                 />
               </div>
 
-              {/* Target Duration */}
               <div className="space-y-2">
                 <Label htmlFor="targetDuration" className="text-base font-medium">
                   Target Duration (min)
@@ -318,11 +83,10 @@ export default function WarRoomScriptingPage() {
                   className="text-base h-12"
                 />
                 <p className="text-xs text-muted-foreground">
-                  ~{targetDuration * 150} words • Recommended: 35 min for War Room style
+                  ~{targetDuration * WORDS_PER_MINUTE} words • Recommended: 35 min for War Room style
                 </p>
               </div>
 
-              {/* War Room Style Info */}
               <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
                 <h4 className="font-semibold text-amber-800 dark:text-amber-200 mb-2">War Room Style</h4>
                 <p className="text-sm text-amber-700 dark:text-amber-300">
@@ -332,7 +96,6 @@ export default function WarRoomScriptingPage() {
                 </p>
               </div>
 
-              {/* Generate Button */}
               <Button
                 onClick={handleGenerate}
                 className="w-full h-14 text-lg font-medium bg-primary hover:bg-primary/90"
@@ -430,14 +193,12 @@ export default function WarRoomScriptingPage() {
                                   {typedSection.title}
                                 </div>
 
-                                {/* Key Points */}
                                 <ul className="text-blue-600 dark:text-blue-400 text-xs mt-1 list-disc list-inside">
                                   {typedSection.key_points?.map((point: string, i: number) => (
                                     <li key={i}>{point}</li>
                                   ))}
                                 </ul>
 
-                                {/* 4-Point Analysis */}
                                 {typedSection.chapter_analysis && (
                                   <div className="mt-2 pl-3 border-l-2 border-blue-300 dark:border-blue-700 space-y-1">
                                     <div className="text-xs">
@@ -463,14 +224,12 @@ export default function WarRoomScriptingPage() {
                                   </div>
                                 )}
 
-                                {/* Engagement Spike */}
                                 {typedSection.engagement_spike && (
                                   <div className="mt-2 text-xs bg-yellow-100 dark:bg-yellow-900/30 p-2 rounded">
                                     <span className="font-semibold">💬 Engagement:</span> {typedSection.engagement_spike}
                                   </div>
                                 )}
 
-                                {/* Visual Note */}
                                 {typedSection.visual_note && (
                                   <div className="mt-1 text-xs text-muted-foreground italic">
                                     🎨 {typedSection.visual_note}
@@ -523,7 +282,6 @@ export default function WarRoomScriptingPage() {
                     </div>
                   </div>
 
-                  {/* Polished indicator */}
                   {scriptData.polished_content && (
                     <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg p-3 text-sm text-green-700 dark:text-green-300">
                       ✓ Script has been audited and polished for quality
@@ -541,16 +299,7 @@ export default function WarRoomScriptingPage() {
               {/* Error state */}
               {status === 'error' && (
                 <div className="mt-4">
-                  <Button
-                    onClick={() => {
-                      setStatus('idle');
-                      setSteps((prev) =>
-                        prev.map((step) => ({ ...step, status: 'pending' as StepStatus }))
-                      );
-                    }}
-                    variant="outline"
-                    className="w-full"
-                  >
+                  <Button onClick={handleReset} variant="outline" className="w-full">
                     Start Over
                   </Button>
                 </div>

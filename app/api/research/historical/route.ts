@@ -2,13 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { SYSTEM_PROMPT, TACTICAL_RESEARCH_PROMPT } from '@/lib/prompts/war-room';
 import { parseJsonObject } from '@/lib/api/json-parser';
 import { validateRequest, isValidationError, TacticalResearchSchema } from '@/lib/api/validate';
+import { queryPerplexity } from '@/lib/ai/perplexity';
+import { generateArtStyle } from '@/lib/ai/art-style';
 import type { TacticalResearch } from '@/lib/types';
 
 export const runtime = 'edge';
 export const maxDuration = 60;
-
-const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY;
-const PERPLEXITY_API_URL = 'https://api.perplexity.ai/chat/completions';
 
 interface TacticalResearchRequest {
   title: string;
@@ -38,37 +37,17 @@ export async function POST(request: NextRequest) {
     const prompt = TACTICAL_RESEARCH_PROMPT(title);
 
     // Call Perplexity again with our structured prompt
-    const structuredResponse = await fetch(PERPLEXITY_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${PERPLEXITY_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: 'sonar-pro',
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
-          {
-            role: 'user',
-            content: `${prompt}\n\nPrevious research findings to incorporate:\n${perplexityResults}`,
-          },
-        ],
-        temperature: 0.3,
-        max_tokens: 8000,
-      }),
+    const structuredContent = await queryPerplexity({
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        {
+          role: 'user',
+          content: `${prompt}\n\nPrevious research findings to incorporate:\n${perplexityResults}`,
+        },
+      ],
+      temperature: 0.3,
+      max_tokens: 8000,
     });
-
-    if (!structuredResponse.ok) {
-      const errorText = await structuredResponse.text();
-      throw new Error(`Perplexity API error: ${structuredResponse.status} - ${errorText}`);
-    }
-
-    const structuredData = await structuredResponse.json();
-    const structuredContent = structuredData.choices[0]?.message?.content;
-
-    if (!structuredContent) {
-      throw new Error('No structured content returned from Perplexity API');
-    }
 
     console.log(`[Tactical Research] Structured telemetry completed`);
 
@@ -98,29 +77,8 @@ export async function POST(request: NextRequest) {
     let artStyle: string | undefined;
 
     try {
-      const artStyleResponse = await fetch(
-        new URL('/api/generate/art-style', request.url).toString(),
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            era: researchData.era,
-            title,
-          }),
-        }
-      );
-
-      if (artStyleResponse.ok) {
-        const artStyleData = await artStyleResponse.json();
-        if (artStyleData.success && artStyleData.artStyle) {
-          artStyle = artStyleData.artStyle;
-          console.log(`[Tactical Research] Art style generated successfully`);
-        }
-      } else {
-        console.warn('[Tactical Research] Art style generation failed, will use default');
-      }
+      artStyle = await generateArtStyle(researchData.era, title);
+      console.log(`[Tactical Research] Art style generated successfully`);
     } catch (artStyleError) {
       console.warn('[Tactical Research] Art style generation error:', artStyleError);
       console.warn('[Tactical Research] Continuing without custom art style');
@@ -184,50 +142,26 @@ function validateTacticalData(research: TacticalResearch): void {
  * Conduct initial tactical research using Perplexity AI
  */
 async function conductTacticalResearch(title: string): Promise<string> {
-  if (!PERPLEXITY_API_KEY) {
-    throw new Error('PERPLEXITY_API_KEY is not configured');
-  }
-
   const searchQuery = buildTacticalQuery(title);
 
   console.log('[Perplexity] Tactical research query:', searchQuery);
 
-  const response = await fetch(PERPLEXITY_API_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${PERPLEXITY_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: 'sonar-pro',
-      messages: [
-        {
-          role: 'system',
-          content:
-            'You are a tactical military analyst. Provide precise, quantified military data with specific numbers for troop counts, casualty figures, and unit compositions. NEVER use vague terms like "thousands" - always give specific numbers.',
-        },
-        {
-          role: 'user',
-          content: searchQuery,
-        },
-      ],
-      temperature: 0.2,
-      max_tokens: 4000,
-      return_citations: true,
-    }),
+  const researchContent = await queryPerplexity({
+    messages: [
+      {
+        role: 'system',
+        content:
+          'You are a tactical military analyst. Provide precise, quantified military data with specific numbers for troop counts, casualty figures, and unit compositions. NEVER use vague terms like "thousands" - always give specific numbers.',
+      },
+      {
+        role: 'user',
+        content: searchQuery,
+      },
+    ],
+    temperature: 0.2,
+    max_tokens: 4000,
+    return_citations: true,
   });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Perplexity API error: ${response.status} - ${errorText}`);
-  }
-
-  const data = await response.json();
-  const researchContent = data.choices[0]?.message?.content;
-
-  if (!researchContent) {
-    throw new Error('No content returned from Perplexity API');
-  }
 
   console.log('[Perplexity] Tactical research completed, length:', researchContent.length);
 

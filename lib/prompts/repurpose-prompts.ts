@@ -1,4 +1,9 @@
 import type { YouTubeExtraction, ScriptAnalysis } from '@/lib/types';
+import {
+  CONTENT_SAFETY_SYSTEM_DIRECTIVE,
+  CONTENT_SAFETY_FILTER,
+  CONTENT_SAFETY_TRANSLATION_GUIDE,
+} from './content-safety';
 
 // ============================================================================
 // PHASE 1: SCRIPT ANALYSIS PROMPT
@@ -88,28 +93,7 @@ Return a JSON object (and ONLY valid JSON, no markdown code blocks):
 
 export const SCRIPT_REWRITE_SYSTEM = `You are a master scriptwriter for tactical battle narratives, known for creating highly engaging, retention-optimized content. You specialize in "Battle Cold Open" technique — dropping viewers directly into the climactic battle, then rewinding to tell the story, and finally returning to the battle with full context.
 
-CONTENT SAFETY DIRECTIVE (MANDATORY - VIOLATION = REJECTED OUTPUT):
-You operate as a "Sanitized Narrator." YOUR OUTPUT WILL BE REJECTED if it contains ANY of the following:
-- Smell descriptions: stench, reek, odor, rotting smell, "hit like a wall", "choked the air"
-- Decay descriptions: rotting, decomposing, liquefying, festering, putrid, decaying corpses
-- Physical penetration: piercing flesh, impaling, puncturing, skewering, stakes through bodies
-- Bodily fluids: blood pooling, viscera, entrails, gore, pus
-- Physical agony: screaming in pain, writhing, suffering, agonizing death
-
-This applies to ALL sections including hooks. There are NO exceptions.
-
-BATTLE COLD OPEN LANGUAGE (USE THIS INSTEAD):
-- Unit movement: "The phalanx advances", "Cavalry breaks through", "The line shatters"
-- Tactical outcomes: "The flank collapses", "The center holds", "40,000 men are now in the kill zone"
-- Gaming terms: "Kill zone", "spawn trap", "morale break", "unit deletion"
-- Statistics: "3-to-1 casualty rate", "40% routed in the first hour"
-
-SIMPLIFY OR DROP RULE:
-- If death detail is NOT critical → DROP IT ENTIRELY
-- If critical → simple statement: "X was killed" or "thousands were executed"
-- NEVER describe the METHOD of death (no "stakes piercing", "impaled", "corpses displayed")
-- "20,000 stakes with bodies" → "20,000 executions displayed as a warning"
-- "impaled bodies" → "executed prisoners"
+${CONTENT_SAFETY_SYSTEM_DIRECTIVE}
 
 Focus on STRATEGY, TACTICAL ACTION, IMPACT, and OUTCOMES — never sensory details of death or decay.`;
 
@@ -120,31 +104,9 @@ export const SCRIPT_REWRITE_PROMPT = (
 
 Rewrite the following YouTube script to maximize engagement and retention. The output must be optimized for Text-to-Speech (TTS) narration.
 
-### CONTENT FILTER (MANDATORY - VIOLATION = REJECTED OUTPUT)
+${CONTENT_SAFETY_FILTER}
 
-YOUR SCRIPT WILL BE REJECTED if it contains ANY of the following:
-- Smell descriptions: stench, reek, odor, "hit like a wall", "choked the air", "smell of death"
-- Decay descriptions: rotting, decomposing, liquefying, festering, putrid, "decaying corpses"
-- Physical gore: piercing flesh, impaling, puncturing, skewering, "stakes through bodies", blood, viscera
-- Physical agony: screaming in pain, writhing, suffering, agonizing death
-
-**TRANSLATION GUIDE — Use These Patterns:**
-
-| REJECTED (sensory) | APPROVED (psychological) |
-|---|---|
-| "The stench of rotting bodies choked the air" | "The overwhelming psychological weight of the scene paralyzed the army" |
-| "Stakes piercing decaying corpses" | "A forest of stakes — a psychological barrier designed to break morale" |
-| "Blood turned the river red" | "Casualty rates spiked at the river crossing" |
-| "The smell of death forced retreat" | "The sheer scale of the defeat triggered a forced withdrawal" |
-| "Liquefying flesh in the sun" | "The grim reality of the battlefield" |
-| "20,000 stakes bearing human forms" | "20,000 executions displayed as a warning" |
-| "impaled bodies" | "executed prisoners" |
-| "corpse of X displayed on a stake" | "X was killed and displayed as a message" |
-
-**SIMPLIFY OR DROP RULE:**
-- If death detail is NOT critical → DROP IT ENTIRELY
-- If critical → simple statement: "X was killed" or "thousands were executed"
-- NEVER describe the METHOD of death in detail
+${CONTENT_SAFETY_TRANSLATION_GUIDE}
 
 **FRAMEWORK: ABSTRACTION OVER SENSATION**
 Describe the *Strategic* or *Psychological* impact, never the sensory details.

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { fal } from '@fal-ai/client';
+import { configureFal } from '@/lib/ai/fal';
+import { MODELS, ASPECT_RATIOS } from '@/lib/config/ai';
 import {
   generateStyleSuffix,
   HISTORICAL_MAP_STYLE_SUFFIX,
@@ -44,7 +45,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         image_url: null,
         prompt_used: scene.visual_prompt || 'PLACEHOLDER: Subscribe button animation',
-        aspect_ratio: '16:9',
+        aspect_ratio: ASPECT_RATIOS.LANDSCAPE,
         model: 'none',
         style: 'subscribe-placeholder',
         is_placeholder: true,
@@ -53,15 +54,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const apiKey = process.env.FAL_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json({ error: 'FAL_API_KEY is not configured' }, { status: 500 });
-    }
-
-    // Configure Fal.ai client
-    fal.config({
-      credentials: apiKey,
-    });
+    const fal = configureFal();
 
     // Build enhanced prompt with appropriate style based on scene type
     const basePrompt = scene.visual_prompt || 'Historical scene';
@@ -112,26 +105,26 @@ export async function POST(request: NextRequest) {
 
       console.log(`[Scene Image] Using /edit endpoint with ${imageUrls.length} reference images`);
 
-      modelUsed = 'fal-ai/nano-banana/edit';
+      modelUsed = MODELS.FAL_NANO_BANANA_EDIT;
       result = (await fal.subscribe(modelUsed, {
         input: {
           prompt: finalPrompt,
           image_urls: imageUrls,
           num_images: 1,
-          aspect_ratio: '16:9',
+          aspect_ratio: ASPECT_RATIOS.LANDSCAPE,
           output_format: 'png',
         },
         logs: false,
       })) as FalImageResult;
     } else {
       // Use standard nano-banana text-to-image for scenes without character references
-      modelUsed = 'fal-ai/nano-banana';
+      modelUsed = MODELS.FAL_NANO_BANANA;
       result = (await fal.subscribe(modelUsed, {
         input: {
           prompt: finalPrompt,
           negative_prompt: negativePrompt,
           num_images: 1,
-          aspect_ratio: '16:9',
+          aspect_ratio: ASPECT_RATIOS.LANDSCAPE,
           seed: Math.floor(Math.random() * 1000000),
         },
         logs: false,
@@ -163,6 +156,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       {
+        success: false,
         error: 'Failed to generate scene image',
         details: errorMessage,
       },

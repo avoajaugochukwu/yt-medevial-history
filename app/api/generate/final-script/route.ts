@@ -10,6 +10,8 @@ import {
 } from '@/lib/prompts/war-room';
 import { parseJsonObject } from '@/lib/api/json-parser';
 import { validateRequest, isValidationError, FinalScriptSchema } from '@/lib/api/validate';
+import { countWords } from '@/lib/utils/word-count';
+import { WORDS_PER_MINUTE } from '@/lib/config/content';
 import type {
   TacticalResearch,
   GamifiedWarOutline,
@@ -207,7 +209,7 @@ export async function POST(request: NextRequest) {
       script: recursiveScript,
       metadata: {
         total_word_count: totalWordCount,
-        estimated_duration_minutes: Math.round((totalWordCount / 150) * 10) / 10,
+        estimated_duration_minutes: Math.round((totalWordCount / WORDS_PER_MINUTE) * 10) / 10,
         batch_count: TOTAL_BATCHES,
         script_duration: scriptDuration,
         target_word_count: wordTargets.total,
@@ -232,16 +234,6 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
-
-/**
- * Count words in text
- */
-function countWords(text: string): number {
-  return text
-    .trim()
-    .split(/\s+/)
-    .filter((word) => word.length > 0).length;
 }
 
 /**

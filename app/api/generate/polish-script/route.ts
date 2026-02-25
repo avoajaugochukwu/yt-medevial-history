@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { generateWithClaude } from '@/lib/ai/anthropic';
 import { SCRIPT_POLISH_PROMPT, SYSTEM_PROMPT } from '@/lib/prompts/war-room';
 import { validateRequest, isValidationError, PolishScriptSchema } from '@/lib/api/validate';
+import { WORDS_PER_MINUTE } from '@/lib/config/content';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120; // 2 minutes for rewriting long scripts
@@ -28,7 +29,7 @@ export async function POST(request: NextRequest) {
     console.log('[polish-script] Starting script polish...');
     console.log(`[polish-script] Raw script: ${rawScript.length} characters`);
     console.log(`[polish-script] Target duration: ${targetDuration} minutes`);
-    console.log(`[polish-script] Target word count: ~${targetDuration * 150} words`);
+    console.log(`[polish-script] Target word count: ~${targetDuration * WORDS_PER_MINUTE} words`);
 
     const polishPrompt = SCRIPT_POLISH_PROMPT(rawScript, auditReport, targetDuration);
 

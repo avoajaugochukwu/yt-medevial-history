@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ArrowRight, FileText, Sparkles } from 'lucide-react';
 import { countWords } from '@/lib/utils/word-count';
+import { WORDS_PER_MINUTE } from '@/lib/config/content';
 
 export default function ScenesPage() {
   const router = useRouter();
@@ -27,7 +28,7 @@ export default function ScenesPage() {
   const handleSetScript = () => {
     if (localScript.trim()) {
       const wordCount = countWords(localScript);
-      const estimatedDuration = Math.round((wordCount / 150) * 10) / 10;
+      const estimatedDuration = Math.round((wordCount / WORDS_PER_MINUTE) * 10) / 10;
       setScript({
         content: localScript,
         word_count: wordCount,
@@ -98,7 +99,7 @@ export default function ScenesPage() {
                 />
                 <div className="flex items-center justify-between">
                   <div className="text-sm text-gray-600">
-                    {wordCount} words • ~{Math.round(wordCount / 150)} min read
+                    {wordCount} words • ~{Math.round(wordCount / WORDS_PER_MINUTE)} min read
                   </div>
                   <Button
                     onClick={handleSetScript}

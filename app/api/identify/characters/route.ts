@@ -4,6 +4,7 @@ import { SYSTEM_PROMPT } from '@/lib/prompts/war-room';
 import { CHARACTER_IDENTIFICATION_PROMPT } from '@/lib/prompts/character';
 import { parseJsonObject } from '@/lib/api/json-parser';
 import { validateRequest, isValidationError, IdentifyCharactersSchema } from '@/lib/api/validate';
+import { MODELS } from '@/lib/config/ai';
 import type { CharacterWithReference, HistoricalEra } from '@/lib/types';
 
 export const maxDuration = 60;
@@ -52,7 +53,7 @@ export async function POST(request: NextRequest) {
     console.log(`[Character Identification] Era: ${era || 'Other'}`);
 
     const response = await client.chat.completions.create({
-      model: 'gpt-4o',
+      model: MODELS.GPT4O,
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: prompt },
@@ -112,6 +113,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       {
+        success: false,
         error: 'Failed to identify characters',
         details: errorMessage,
       },
