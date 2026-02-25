@@ -456,3 +456,22 @@ export interface RepurposeSession {
   status: RepurposeStatus;
   error?: string;
 }
+
+// ============================================================================
+// VIDEO GENERATION TYPES
+// ============================================================================
+
+export interface ApiSceneItem {
+  scene_number: number;
+  script_snippet: string;
+  image_url: string;
+}
+
+export interface VideoGenerationStatus {
+  job_id: string;
+  status: 'queued' | 'processing' | 'rendering' | 'completed' | 'failed';
+  progress?: number;
+  message?: string;
+  video_url?: string;
+  error?: string;
+}

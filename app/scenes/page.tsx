@@ -153,15 +153,15 @@ export default function ScenesPage() {
                     Scenes Complete!
                   </h3>
                   <p className="text-sm text-gray-600">
-                    All scenes have been generated. Continue to export your work.
+                    All scenes have been generated. Continue to generate your video.
                   </p>
                 </div>
                 <Button
-                  onClick={() => router.push('/export')}
+                  onClick={() => router.push('/video-generation')}
                   className="gap-2"
                   size="lg"
                 >
-                  Continue to Export
+                  Continue to Video
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               </div>

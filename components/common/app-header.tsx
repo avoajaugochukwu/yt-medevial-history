@@ -14,6 +14,7 @@ export function AppHeader() {
   const navItems = [
     { path: '/scripting', label: 'Scripting' },
     { path: '/scenes', label: 'Scenes' },
+    { path: '/video-generation', label: 'Video' },
     { path: '/export', label: 'Export' },
   ];
 
