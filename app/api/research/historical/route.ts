@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { SYSTEM_PROMPT, TACTICAL_RESEARCH_PROMPT } from '@/lib/prompts/all-prompts';
+import { SYSTEM_PROMPT, TACTICAL_RESEARCH_PROMPT } from '@/lib/prompts/war-room';
+import { parseJsonObject } from '@/lib/api/json-parser';
+import { validateRequest, isValidationError, TacticalResearchSchema } from '@/lib/api/validate';
 import type { TacticalResearch } from '@/lib/types';
 
 export const runtime = 'edge';
@@ -21,13 +23,9 @@ interface TacticalResearchRequest {
  */
 export async function POST(request: NextRequest) {
   try {
-    const body: TacticalResearchRequest = await request.json();
-    const { title } = body;
-
-    // Validation
-    if (!title || title.trim().length === 0) {
-      return NextResponse.json({ error: 'Title is required' }, { status: 400 });
-    }
+    const result = await validateRequest(request, TacticalResearchSchema);
+    if (isValidationError(result)) return result;
+    const { title } = result;
 
     console.log(`[Tactical Research] Starting telemetry extraction for: "${title}"`);
 
@@ -75,44 +73,10 @@ export async function POST(request: NextRequest) {
     console.log(`[Tactical Research] Structured telemetry completed`);
 
     // Parse the JSON response
-    let researchData: TacticalResearch;
-    try {
-      // Remove markdown code blocks if present
-      const cleanedContent = structuredContent
-        .replace(/```json\n?/g, '')
-        .replace(/```\n?/g, '')
-        .trim();
-
-      // Try to extract JSON from the response
-      const jsonMatch = cleanedContent.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        let jsonStr = jsonMatch[0];
-
-        // Attempt to fix incomplete JSON by closing open braces/brackets
-        const openBraces = (jsonStr.match(/\{/g) || []).length;
-        const closeBraces = (jsonStr.match(/\}/g) || []).length;
-        const openBrackets = (jsonStr.match(/\[/g) || []).length;
-        const closeBrackets = (jsonStr.match(/\]/g) || []).length;
-
-        // Add missing closing characters
-        jsonStr = jsonStr + '}'.repeat(Math.max(0, openBraces - closeBraces));
-        jsonStr = jsonStr + ']'.repeat(Math.max(0, openBrackets - closeBrackets));
-
-        researchData = JSON.parse(jsonStr);
-      } else {
-        researchData = JSON.parse(cleanedContent);
-      }
-
-      // Ensure generated_at is a Date object
-      researchData.generated_at = new Date();
-
-      // Validate numeric data - warn if vague terms are detected
-      validateTacticalData(researchData);
-    } catch (parseError) {
-      console.error('[Tactical Research] JSON parse error:', parseError);
+    const researchData = parseJsonObject<TacticalResearch>(structuredContent, { fixIncomplete: true });
+    if (!researchData) {
+      console.error('[Tactical Research] JSON parse error');
       console.error('Response content:', structuredContent.substring(0, 500));
-
-      // Return a fallback structure
       return NextResponse.json(
         {
           success: false,
@@ -122,6 +86,12 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
+
+    // Ensure generated_at is a Date object
+    researchData.generated_at = new Date();
+
+    // Validate numeric data - warn if vague terms are detected
+    validateTacticalData(researchData);
 
     // Step 3: Generate AI-powered art style based on the inferred era
     console.log(`[Tactical Research] Generating art style for ${researchData.era}...`);

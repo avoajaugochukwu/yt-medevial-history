@@ -3,7 +3,7 @@ import { fal } from '@fal-ai/client';
 import {
   CHARACTER_PORTRAIT_STYLE_SUFFIX,
   NEGATIVE_PROMPT_PORTRAIT,
-} from '@/lib/prompts/all-prompts';
+} from '@/lib/prompts/character';
 import type { CharacterWithReference } from '@/lib/types';
 
 export const maxDuration = 120;

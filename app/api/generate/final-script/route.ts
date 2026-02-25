@@ -7,7 +7,9 @@ import {
   RECURSIVE_BATCH_PROMPT,
   WAR_ROOM_STYLE,
   WORD_COUNT_TARGETS,
-} from '@/lib/prompts/all-prompts';
+} from '@/lib/prompts/war-room';
+import { parseJsonObject } from '@/lib/api/json-parser';
+import { validateRequest, isValidationError, FinalScriptSchema } from '@/lib/api/validate';
 import type {
   TacticalResearch,
   GamifiedWarOutline,
@@ -46,17 +48,9 @@ const getScriptDuration = (minutes: number): ScriptDuration => {
  */
 export async function POST(request: NextRequest) {
   try {
-    const body: RecursiveScriptRequest = await request.json();
-    const { title, research: researchJson, targetDuration } = body;
-
-    // Validation
-    if (!title || title.trim().length === 0) {
-      return NextResponse.json({ error: 'Title is required' }, { status: 400 });
-    }
-
-    if (!researchJson || researchJson.trim().length === 0) {
-      return NextResponse.json({ error: 'Research data is required' }, { status: 400 });
-    }
+    const validated = await validateRequest(request, FinalScriptSchema);
+    if (isValidationError(validated)) return validated;
+    const { title, research: researchJson, targetDuration } = validated;
 
     // Parse research data
     let research: TacticalResearch;
@@ -70,7 +64,7 @@ export async function POST(request: NextRequest) {
     const era = research.era;
 
     // Determine script duration from numeric target
-    const scriptDuration: ScriptDuration = body.scriptDuration || getScriptDuration(targetDuration);
+    const scriptDuration: ScriptDuration = validated.scriptDuration || getScriptDuration(targetDuration);
     const wordTargets = WORD_COUNT_TARGETS[scriptDuration];
 
     console.log(
@@ -104,24 +98,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Parse the outline JSON
-    let outline: GamifiedWarOutline;
-    try {
-      const cleanedOutline = outlineResponse
-        .replace(/```json\n?/g, '')
-        .replace(/```\n?/g, '')
-        .trim();
-      const jsonMatch = cleanedOutline.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        outline = JSON.parse(jsonMatch[0]);
-      } else {
-        outline = JSON.parse(cleanedOutline);
-      }
-      outline.generated_at = new Date();
-      outline.target_duration = scriptDuration;
-    } catch (parseError) {
-      console.error('[Recursive Script] Outline parse error:', parseError);
+    const outline = parseJsonObject<GamifiedWarOutline>(outlineResponse);
+    if (!outline) {
+      console.error('[Recursive Script] Outline parse error');
       throw new Error('Failed to parse Gamified War outline');
     }
+    outline.generated_at = new Date();
+    outline.target_duration = scriptDuration;
 
     console.log('[Recursive Script] Gamified War outline generated with 5 sections + 4-point analysis');
 
@@ -156,19 +139,11 @@ export async function POST(request: NextRequest) {
 
       // Parse the batch response
       let batchData: { script_chunk: string; next_prompt_payload: RecursivePromptPayload };
-      try {
-        const cleanedBatch = batchResponse
-          .replace(/```json\n?/g, '')
-          .replace(/```\n?/g, '')
-          .trim();
-        const jsonMatch = cleanedBatch.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          batchData = JSON.parse(jsonMatch[0]);
-        } else {
-          batchData = JSON.parse(cleanedBatch);
-        }
-      } catch (parseError) {
-        console.error(`[Recursive Script] Batch ${batchNumber} parse error:`, parseError);
+      const parsed = parseJsonObject<{ script_chunk: string; next_prompt_payload: RecursivePromptPayload }>(batchResponse);
+      if (parsed) {
+        batchData = parsed;
+      } else {
+        console.error(`[Recursive Script] Batch ${batchNumber} parse error, using raw response`);
         // If parsing fails, try to extract just the script content
         batchData = {
           script_chunk: batchResponse,

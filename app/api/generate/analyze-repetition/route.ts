@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateWithOpenAI } from '@/lib/ai/openai';
-import { SCRIPT_AUDIT_PROMPT } from '@/lib/prompts/all-prompts';
+import { SCRIPT_AUDIT_PROMPT } from '@/lib/prompts/war-room';
+import { validateRequest, isValidationError, AuditScriptSchema } from '@/lib/api/validate';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60; // 60 seconds should be enough for analysis
@@ -17,22 +18,9 @@ interface AuditRequest {
  */
 export async function POST(request: NextRequest) {
   try {
-    const body: AuditRequest = await request.json();
-    const { script } = body;
-
-    if (!script || typeof script !== 'string') {
-      return NextResponse.json(
-        { success: false, error: 'Script is required and must be a string' },
-        { status: 400 }
-      );
-    }
-
-    if (script.trim().length < 100) {
-      return NextResponse.json(
-        { success: false, error: 'Script is too short to analyze (minimum 100 characters)' },
-        { status: 400 }
-      );
-    }
+    const result = await validateRequest(request, AuditScriptSchema);
+    if (isValidationError(result)) return result;
+    const { script } = result;
 
     console.log('[analyze-repetition] Starting script audit...');
     console.log(`[analyze-repetition] Script length: ${script.length} characters`);

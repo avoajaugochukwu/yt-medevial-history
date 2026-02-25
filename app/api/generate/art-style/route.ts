@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getOpenAIClient } from '@/lib/ai/openai';
-import { SYSTEM_PROMPT, GENERATE_ART_STYLE_PROMPT } from '@/lib/prompts/all-prompts';
+import { SYSTEM_PROMPT } from '@/lib/prompts/war-room';
+import { GENERATE_ART_STYLE_PROMPT } from '@/lib/prompts/style';
+import { validateRequest, isValidationError, ArtStyleSchema } from '@/lib/api/validate';
 import type { HistoricalEra } from '@/lib/types';
 
 export const runtime = 'edge';
@@ -19,17 +21,9 @@ interface ArtStyleRequest {
  */
 export async function POST(request: NextRequest) {
   try {
-    const body: ArtStyleRequest = await request.json();
-    const { era, title } = body;
-
-    // Validation
-    if (!era) {
-      return NextResponse.json({ error: 'Era is required' }, { status: 400 });
-    }
-
-    if (!title || title.trim().length === 0) {
-      return NextResponse.json({ error: 'Title is required' }, { status: 400 });
-    }
+    const result = await validateRequest(request, ArtStyleSchema);
+    if (isValidationError(result)) return result;
+    const { era, title } = result;
 
     console.log(`[Art Style] Generating tactical art style for: "${title}" (${era})`);
 

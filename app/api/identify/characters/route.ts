@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getOpenAIClient } from '@/lib/ai/openai';
-import { SYSTEM_PROMPT, CHARACTER_IDENTIFICATION_PROMPT } from '@/lib/prompts/all-prompts';
+import { SYSTEM_PROMPT } from '@/lib/prompts/war-room';
+import { CHARACTER_IDENTIFICATION_PROMPT } from '@/lib/prompts/character';
+import { parseJsonObject } from '@/lib/api/json-parser';
+import { validateRequest, isValidationError, IdentifyCharactersSchema } from '@/lib/api/validate';
 import type { CharacterWithReference, HistoricalEra } from '@/lib/types';
 
 export const maxDuration = 60;
@@ -37,11 +40,9 @@ function generateUUID(): string {
 
 export async function POST(request: NextRequest) {
   try {
-    const { script, era }: IdentifyCharactersRequest = await request.json();
-
-    if (!script) {
-      return NextResponse.json({ error: 'Script is required' }, { status: 400 });
-    }
+    const result = await validateRequest(request, IdentifyCharactersSchema);
+    if (isValidationError(result)) return result;
+    const { script, era } = result as { script: string; era?: HistoricalEra };
 
     const client = getOpenAIClient();
     const prompt = CHARACTER_IDENTIFICATION_PROMPT(script, era || 'Other');
@@ -66,17 +67,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Parse JSON response - handle markdown code blocks
-    const cleanedContent = content
-      .replace(/```json\n?/g, '')
-      .replace(/```\n?/g, '')
-      .trim();
-
-    const jsonMatch = cleanedContent.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
+    const data = parseJsonObject<CharacterIdentificationResponse>(content);
+    if (!data) {
       throw new Error('Failed to extract JSON from response');
     }
-
-    const data: CharacterIdentificationResponse = JSON.parse(jsonMatch[0]);
 
     if (!data.characters || !Array.isArray(data.characters)) {
       throw new Error('Invalid response structure: missing characters array');

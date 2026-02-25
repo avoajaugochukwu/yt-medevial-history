@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateWithClaude } from '@/lib/ai/anthropic';
-import { SCRIPT_POLISH_PROMPT, SYSTEM_PROMPT } from '@/lib/prompts/all-prompts';
+import { SCRIPT_POLISH_PROMPT, SYSTEM_PROMPT } from '@/lib/prompts/war-room';
+import { validateRequest, isValidationError, PolishScriptSchema } from '@/lib/api/validate';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120; // 2 minutes for rewriting long scripts
@@ -20,30 +21,9 @@ interface PolishRequest {
  */
 export async function POST(request: NextRequest) {
   try {
-    const body: PolishRequest = await request.json();
-    const { rawScript, auditReport, targetDuration } = body;
-
-    // Validation
-    if (!rawScript || typeof rawScript !== 'string') {
-      return NextResponse.json(
-        { success: false, error: 'rawScript is required and must be a string' },
-        { status: 400 }
-      );
-    }
-
-    if (!auditReport || typeof auditReport !== 'string') {
-      return NextResponse.json(
-        { success: false, error: 'auditReport is required and must be a string' },
-        { status: 400 }
-      );
-    }
-
-    if (!targetDuration || typeof targetDuration !== 'number' || targetDuration < 1) {
-      return NextResponse.json(
-        { success: false, error: 'targetDuration must be a positive number' },
-        { status: 400 }
-      );
-    }
+    const result = await validateRequest(request, PolishScriptSchema);
+    if (isValidationError(result)) return result;
+    const { rawScript, auditReport, targetDuration } = result;
 
     console.log('[polish-script] Starting script polish...');
     console.log(`[polish-script] Raw script: ${rawScript.length} characters`);

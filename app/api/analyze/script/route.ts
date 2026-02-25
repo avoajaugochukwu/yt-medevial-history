@@ -1,7 +1,12 @@
 import { NextRequest } from 'next/server';
 import OpenAI from 'openai';
 import { getOpenAIClient } from '@/lib/ai/openai';
-import { SYSTEM_PROMPT, SCENE_SECTION_PROMPT, PreviousScene } from '@/lib/prompts/all-prompts';
+import { SYSTEM_PROMPT } from '@/lib/prompts/war-room';
+import { SCENE_SECTION_PROMPT, PreviousScene } from '@/lib/prompts/scene-generation';
+import { parseJsonArray } from '@/lib/api/json-parser';
+import { validateRequest, isValidationError, ScriptAnalysisSchema } from '@/lib/api/validate';
+import { splitTextBySentenceIntegrity } from '@/lib/utils/script-splitter';
+import { getPacingPhase } from '@/lib/config/pacing';
 
 export const maxDuration = 600; // 10 minutes timeout for large scene generation
 export const runtime = 'nodejs'; // Use Node.js runtime for streaming support
@@ -14,67 +19,28 @@ interface ParsedScene {
   [key: string]: unknown;
 }
 
-/**
- * Split script text into sections of ~maxWords at paragraph boundaries.
- */
-function splitScriptIntoSections(script: string, maxWordsPerSection: number = 600): string[] {
-  const paragraphs = script.split(/\n\s*\n/);
-  const sections: string[] = [];
-  let currentSection = '';
-  let currentWordCount = 0;
-
-  for (const paragraph of paragraphs) {
-    const trimmed = paragraph.trim();
-    if (!trimmed) continue;
-
-    const paragraphWords = trimmed.split(/\s+/).length;
-
-    if (currentWordCount + paragraphWords > maxWordsPerSection && currentSection) {
-      sections.push(currentSection.trim());
-      currentSection = '';
-      currentWordCount = 0;
-    }
-
-    currentSection += (currentSection ? '\n\n' : '') + trimmed;
-    currentWordCount += paragraphWords;
-  }
-
-  if (currentSection.trim()) {
-    sections.push(currentSection.trim());
-  }
-
-  return sections;
-}
-
-/**
- * Determine pacing phase based on cumulative word offset in the script.
- */
-function getPacingPhase(wordOffset: number): { phase: string; durationRange: string; maxWordsPerScene: number } {
-  if (wordOffset < 200) return { phase: 'hook', durationRange: '1.5-2.5 seconds', maxWordsPerScene: 6 };
-  if (wordOffset < 600) return { phase: 'setup', durationRange: '3-5 seconds', maxWordsPerScene: 13 };
-  if (wordOffset < 2000) return { phase: 'core_content', durationRange: '5-8 seconds', maxWordsPerScene: 20 };
-  return { phase: 'deep_content', durationRange: '6-10 seconds', maxWordsPerScene: 25 };
-}
-
 export async function POST(request: NextRequest) {
   try {
-    const { script } = await request.json();
-
-    if (!script) {
-      return new Response(
-        JSON.stringify({ error: 'Script is required' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
+    const result = await validateRequest(request, ScriptAnalysisSchema);
+    if (isValidationError(result)) return result;
+    const { script } = result;
 
     const wordCount = script.trim().split(/\s+/).length;
     const durationSeconds = Math.round((wordCount / 150) * 60);
-    const sections = splitScriptIntoSections(script, 600);
 
     console.log(`[Scene Analysis] Analyzing script (${script.length} chars, ${wordCount} words, ~${Math.round(durationSeconds / 60)} min)`);
-    console.log(`[Scene Analysis] Split into ${sections.length} sections for sequential processing`);
 
     const client = getOpenAIClient();
+
+    console.log(`[Scene Analysis] Splitting script deterministically (20 sentences per chunk)...`);
+    const { management_chunks } = splitTextBySentenceIntegrity(script, 20);
+    const sections = management_chunks.map(chunk => chunk.text_content);
+
+    console.log(`[Scene Analysis] Split into ${management_chunks.length} chunks:`);
+    for (const chunk of management_chunks) {
+      const chunkWords = chunk.text_content.split(/\s+/).length;
+      console.log(`  Chunk ${chunk.chunk_id}: ${chunk.sentence_count} sentences, ${chunkWords} words — "${chunk.text_content.substring(0, 80)}..."`);
+    }
 
     return handleSequentialGeneration(sections, wordCount, durationSeconds, client);
   } catch (error) {
@@ -108,16 +74,16 @@ function handleSequentialGeneration(
       for (let i = 0; i < sections.length; i++) {
         const section = sections[i];
         const sectionWordCount = section.split(/\s+/).length;
-        const { phase, durationRange, maxWordsPerScene } = getPacingPhase(cumulativeWordOffset);
+        const { phase: startingPhase } = getPacingPhase(cumulativeWordOffset);
 
-        console.log(`[Scene Analysis] Section ${i + 1}/${sections.length}: ${sectionWordCount} words, phase=${phase}, starting scene ${nextSceneNumber}`);
+        console.log(`[Scene Analysis] Section ${i + 1}/${sections.length}: ${sectionWordCount} words, globalOffset=${cumulativeWordOffset}, startPhase=${startingPhase}, starting scene ${nextSceneNumber}`);
 
         controller.enqueue(encoder.encode(JSON.stringify({
           type: 'section_progress',
           sectionIndex: i,
           totalSections: sections.length,
           status: 'started',
-          pacingPhase: phase,
+          pacingPhase: startingPhase,
         }) + '\n'));
 
         try {
@@ -126,13 +92,13 @@ function handleSequentialGeneration(
                 scene_number: s.scene_number,
                 script_snippet: s.script_snippet,
                 visual_prompt: s.visual_prompt,
-                pacing_phase: s.pacing_phase || phase,
+                pacing_phase: s.pacing_phase || startingPhase,
               }))
             : undefined;
 
           const sectionScenes = await generateSection(
             section, i, sections.length, nextSceneNumber,
-            phase, durationRange, maxWordsPerScene,
+            cumulativeWordOffset,
             previousScenes, client, controller, encoder
           );
 
@@ -218,9 +184,7 @@ async function generateSection(
   sectionIndex: number,
   totalSections: number,
   startSceneNumber: number,
-  pacingPhase: string,
-  durationRange: string,
-  maxWordsPerScene: number,
+  globalWordOffset: number,
   previousScenes: PreviousScene[] | undefined,
   client: OpenAI,
   controller: ReadableStreamDefaultController,
@@ -228,7 +192,7 @@ async function generateSection(
 ): Promise<ParsedScene[]> {
   const prompt = SCENE_SECTION_PROMPT(
     sectionText, sectionIndex, totalSections, startSceneNumber,
-    pacingPhase, durationRange, maxWordsPerScene, previousScenes
+    globalWordOffset, previousScenes
   );
 
   // Each section is ~600 words → at most ~100 scenes (hook) or ~25 scenes (deep_content)
@@ -268,17 +232,9 @@ async function generateSection(
  * Extract and parse a JSON array of scenes from GPT-4o output.
  */
 function parseSceneJson(text: string): ParsedScene[] | null {
-  try {
-    const jsonMatch = text.match(/\[[\s\S]*\]/);
-    if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]);
-      if (Array.isArray(parsed)) return parsed;
-    }
-    const parsed = JSON.parse(text);
-    if (Array.isArray(parsed)) return parsed;
-    return null;
-  } catch {
+  const result = parseJsonArray<ParsedScene>(text);
+  if (!result) {
     console.error('[Scene Analysis] JSON parse error for text starting with:', text.substring(0, 200));
-    return null;
   }
+  return result;
 }

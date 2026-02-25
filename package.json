@@ -21,6 +21,7 @@
     "@radix-ui/react-separator": "^1.1.7",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "compromise": "^14.14.5",
     "file-saver": "^2.0.5",
     "jszip": "^3.10.1",
     "lucide-react": "^0.542.0",

@@ -4,6 +4,8 @@ import {
   SCRIPT_ANALYSIS_SYSTEM,
   SCRIPT_ANALYSIS_PROMPT,
 } from '@/lib/prompts/repurpose-prompts';
+import { parseJsonObject } from '@/lib/api/json-parser';
+import { validateRequest, isValidationError, RepurposeAnalyzeSchema } from '@/lib/api/validate';
 import type { YouTubeExtraction, ScriptAnalysis } from '@/lib/types';
 
 export const runtime = 'nodejs';
@@ -15,13 +17,9 @@ interface AnalyzeRequest {
 
 export async function POST(request: NextRequest) {
   try {
-    const body: AnalyzeRequest = await request.json();
-    const { extraction } = body;
-
-    // Validation
-    if (!extraction || !extraction.transcript?.text) {
-      return NextResponse.json({ error: 'Extraction data is required' }, { status: 400 });
-    }
+    const result = await validateRequest(request, RepurposeAnalyzeSchema);
+    if (isValidationError(result)) return result;
+    const { extraction } = result as { extraction: YouTubeExtraction };
 
     console.log(`[Repurpose Analyze] Analyzing script (${extraction.transcript.wordCount} words)`);
 
@@ -33,21 +31,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Parse JSON response
-    let analysis: ScriptAnalysis;
-    try {
-      const cleaned = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-      const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        analysis = JSON.parse(jsonMatch[0]);
-      } else {
-        analysis = JSON.parse(cleaned);
-      }
-      analysis.analyzedAt = new Date();
-    } catch (parseError) {
-      console.error('[Repurpose Analyze] Parse error:', parseError);
-      console.error('[Repurpose Analyze] Raw response:', response);
+    const analysis = parseJsonObject<ScriptAnalysis>(response);
+    if (!analysis) {
+      console.error('[Repurpose Analyze] Parse error. Raw response:', response);
       throw new Error('Failed to parse analysis response');
     }
+    analysis.analyzedAt = new Date();
 
     console.log(`[Repurpose Analyze] Complete. Overall score: ${analysis.overallScore}/10`);
 

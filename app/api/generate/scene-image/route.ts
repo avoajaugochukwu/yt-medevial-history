@@ -5,7 +5,7 @@ import {
   HISTORICAL_MAP_STYLE_SUFFIX,
   NEGATIVE_PROMPT_HISTORICAL,
   NEGATIVE_PROMPT_MAPS,
-} from '@/lib/prompts/all-prompts';
+} from '@/lib/prompts/style';
 
 interface FalImageResult {
   data?: {

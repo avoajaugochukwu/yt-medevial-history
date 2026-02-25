@@ -4,6 +4,8 @@ import {
   TITLE_GENERATION_SYSTEM,
   TITLE_GENERATION_PROMPT,
 } from '@/lib/prompts/repurpose-prompts';
+import { parseJsonArray } from '@/lib/api/json-parser';
+import { validateRequest, isValidationError, RepurposeTitlesSchema } from '@/lib/api/validate';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60; // 1 minute for title generation
@@ -14,13 +16,9 @@ interface TitlesRequest {
 
 export async function POST(request: NextRequest) {
   try {
-    const body: TitlesRequest = await request.json();
-    const { script } = body;
-
-    // Validation
-    if (!script || script.trim().length === 0) {
-      return NextResponse.json({ error: 'Script is required' }, { status: 400 });
-    }
+    const result = await validateRequest(request, RepurposeTitlesSchema);
+    if (isValidationError(result)) return result;
+    const { script } = result;
 
     console.log(`[Repurpose Titles] Generating titles for script (${script.split(/\s+/).length} words)`);
 
@@ -32,23 +30,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Parse JSON response
-    let titles: string[];
-    try {
-      const cleaned = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-      const jsonMatch = cleaned.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        titles = JSON.parse(jsonMatch[0]);
-      } else {
-        titles = JSON.parse(cleaned);
-      }
-
-      if (!Array.isArray(titles) || titles.length !== 3) {
-        throw new Error('Expected exactly 3 titles');
-      }
-    } catch (parseError) {
-      console.error('[Repurpose Titles] Parse error:', parseError);
-      console.error('[Repurpose Titles] Raw response:', response);
-      throw new Error('Failed to parse titles response');
+    const titles = parseJsonArray<string>(response);
+    if (!titles || titles.length !== 3) {
+      console.error('[Repurpose Titles] Parse error. Raw response:', response);
+      throw new Error('Failed to parse titles response - expected exactly 3 titles');
     }
 
     console.log('[Repurpose Titles] Generated titles:', titles);

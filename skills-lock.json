@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "architecture-designer": {
+      "source": "jeffallan/claude-skills",
+      "sourceType": "github",
+      "computedHash": "9c8c07bda69e9c28ef291dbffac9beed05cb015970bffcd3102f5dc3410bcf73"
+    }
+  }
+}
