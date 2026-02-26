@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { POLL_INTERVAL_MS, TERMINAL_STATES } from '@/lib/config/video';
+import { POLL_INTERVAL_MS, TERMINAL_STATES, MAX_CONSECUTIVE_POLL_FAILURES } from '@/lib/config/video';
 import type { VideoGenerationStatus } from '@/lib/types';
 
 export function useVideoGeneration() {
@@ -11,6 +11,7 @@ export function useVideoGeneration() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const consecutiveFailuresRef = useRef(0);
 
   const stopPolling = useCallback(() => {
     if (intervalRef.current) {
@@ -29,6 +30,7 @@ export function useVideoGeneration() {
           throw new Error(body.error || `Status check failed (${res.status})`);
         }
         const data: VideoGenerationStatus = await res.json();
+        consecutiveFailuresRef.current = 0;
         setStatus(data);
 
         if (TERMINAL_STATES.has(data.status)) {
@@ -38,9 +40,12 @@ export function useVideoGeneration() {
           }
         }
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Failed to check status';
-        setError(message);
-        stopPolling();
+        consecutiveFailuresRef.current += 1;
+        if (consecutiveFailuresRef.current >= MAX_CONSECUTIVE_POLL_FAILURES) {
+          const message = err instanceof Error ? err.message : 'Failed to check status';
+          setError(message);
+          stopPolling();
+        }
       }
     },
     [stopPolling],
