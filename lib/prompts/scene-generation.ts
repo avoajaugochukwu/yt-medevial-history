@@ -4,12 +4,6 @@
 
 import { CONTENT_SAFETY_VISUAL } from './content-safety';
 
-export interface PreviousScene {
-  scene_number: number;
-  script_snippet: string;
-  visual_prompt: string;
-}
-
 export const SCENE_SECTION_PROMPT = (
   sectionText: string,
   sectionIndex: number,
@@ -17,21 +11,7 @@ export const SCENE_SECTION_PROMPT = (
   startSceneNumber: number,
   targetDuration: number,
   wordsPerScene: number,
-  previousScenes?: PreviousScene[]
 ) => {
-  const continuitySection = previousScenes && previousScenes.length > 0
-    ? `### CONTINUITY CONTEXT (CRITICAL)
-
-The following scenes were generated for the previous section. Your scenes MUST continue seamlessly from where these left off. Do NOT re-cover any script content from these scenes. Begin your first scene's script_snippet immediately after the last snippet shown below.
-
-${previousScenes.map(s => `**Scene ${s.scene_number}**:
-- Script: "${s.script_snippet}"
-- Visual: "${s.visual_prompt}"`).join('\n\n')}
-
----
-`
-    : '';
-
   return `### ROLE
 
 You are a **Visual Director** for historical documentary content, specialized in translating narration into stunning visual scene descriptions.
@@ -47,7 +27,7 @@ At ~150 words/minute narration, each scene's script_snippet should be approximat
 
 Scene numbers start at **${startSceneNumber}**.
 
-${continuitySection}### SCRIPT SECTION TO COVER
+### SCRIPT SECTION TO COVER
 
 ${sectionText}
 

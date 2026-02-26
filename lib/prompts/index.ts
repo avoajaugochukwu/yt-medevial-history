@@ -22,7 +22,6 @@ export {
 export {
   SCENE_SECTION_PROMPT,
 } from './scene-generation';
-export type { PreviousScene } from './scene-generation';
 
 // Character prompts (identification & portrait generation)
 export {

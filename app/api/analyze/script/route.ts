@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import OpenAI from 'openai';
 import { getOpenAIClient } from '@/lib/ai/openai';
 import { SYSTEM_PROMPT } from '@/lib/prompts/war-room';
-import { SCENE_SECTION_PROMPT, PreviousScene } from '@/lib/prompts/scene-generation';
+import { SCENE_SECTION_PROMPT } from '@/lib/prompts/scene-generation';
 import { parseJsonArray } from '@/lib/api/json-parser';
 import { validateRequest, isValidationError, ScriptAnalysisSchema } from '@/lib/api/validate';
 import { splitTextBySentenceIntegrity } from '@/lib/utils/script-splitter';
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
       console.log(`  Chunk ${chunk.chunk_id}: ${chunk.sentence_count} sentences, ${chunkWords} words — "${chunk.text_content.substring(0, 80)}..."`);
     }
 
-    return handleSequentialGeneration(sections, wordCount, durationSeconds, client);
+    return handleParallelGeneration(sections, wordCount, durationSeconds, client);
   } catch (error) {
     console.error('[Scene Analysis] Error:', error);
     return new Response(
@@ -53,10 +53,10 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * Process script sections sequentially, letting GPT-4o organically decide
+ * Process script sections in parallel, letting GPT-4o organically decide
  * how many scenes each section requires. No pre-calculated target.
  */
-function handleSequentialGeneration(
+function handleParallelGeneration(
   sections: string[],
   wordCount: number,
   durationSeconds: number,
@@ -66,17 +66,15 @@ function handleSequentialGeneration(
 
   const readableStream = new ReadableStream({
     async start(controller) {
-      const allScenes: ParsedScene[] = [];
       const sectionErrors: { sectionIndex: number; error: string }[] = [];
-      let nextSceneNumber = 1;
 
-      for (let i = 0; i < sections.length; i++) {
-        const section = sections[i];
+      // Fire all sections in parallel
+      const sectionPromises = sections.map((section, i) => {
         const sectionWordCount = section.split(/\s+/).length;
         const targetDuration = getSectionTargetDuration(i);
         const wordsPerScene = getWordsPerScene(targetDuration);
 
-        console.log(`[Scene Analysis] Section ${i + 1}/${sections.length}: ${sectionWordCount} words, targetDuration=${targetDuration}s (~${wordsPerScene} words/scene), starting scene ${nextSceneNumber}`);
+        console.log(`[Scene Analysis] Section ${i + 1}/${sections.length}: ${sectionWordCount} words, targetDuration=${targetDuration}s (~${wordsPerScene} words/scene) [parallel]`);
 
         controller.enqueue(encoder.encode(JSON.stringify({
           type: 'section_progress',
@@ -85,23 +83,24 @@ function handleSequentialGeneration(
           status: 'started',
         }) + '\n'));
 
-        try {
-          const previousScenes: PreviousScene[] | undefined = allScenes.length > 0
-            ? allScenes.slice(-3).map(s => ({
-                scene_number: s.scene_number,
-                script_snippet: s.script_snippet,
-                visual_prompt: s.visual_prompt,
-              }))
-            : undefined;
+        return generateSection(
+          section, i, sections.length, 1,
+          targetDuration, wordsPerScene,
+          client, controller, encoder
+        );
+      });
 
-          const sectionScenes = await generateSection(
-            section, i, sections.length, nextSceneNumber,
-            targetDuration, wordsPerScene,
-            previousScenes, client, controller, encoder
-          );
+      const results = await Promise.allSettled(sectionPromises);
 
-          // Renumber scenes sequentially
-          const renumbered = sectionScenes.map((scene, idx) => ({
+      // Collect results in order and renumber scenes sequentially
+      const allScenes: ParsedScene[] = [];
+      let nextSceneNumber = 1;
+
+      for (let i = 0; i < results.length; i++) {
+        const result = results[i];
+
+        if (result.status === 'fulfilled') {
+          const renumbered = result.value.map((scene, idx) => ({
             ...scene,
             scene_number: nextSceneNumber + idx,
           }));
@@ -118,8 +117,8 @@ function handleSequentialGeneration(
             status: 'completed',
             scenesGenerated: renumbered.length,
           }) + '\n'));
-        } catch (error) {
-          const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+        } else {
+          const errorMsg = result.reason instanceof Error ? result.reason.message : 'Unknown error';
           console.error(`[Scene Analysis] Section ${i + 1} failed:`, errorMsg);
           sectionErrors.push({ sectionIndex: i, error: errorMsg });
 
@@ -182,14 +181,13 @@ async function generateSection(
   startSceneNumber: number,
   targetDuration: number,
   wordsPerScene: number,
-  previousScenes: PreviousScene[] | undefined,
   client: OpenAI,
   controller: ReadableStreamDefaultController,
   encoder: TextEncoder
 ): Promise<ParsedScene[]> {
   const prompt = SCENE_SECTION_PROMPT(
     sectionText, sectionIndex, totalSections, startSceneNumber,
-    targetDuration, wordsPerScene, previousScenes
+    targetDuration, wordsPerScene
   );
 
   const maxTokens = 16000;
@@ -211,7 +209,7 @@ async function generateSection(
     const content = streamChunk.choices[0]?.delta?.content;
     if (content) {
       accumulatedText += content;
-      controller.enqueue(encoder.encode(JSON.stringify({ type: 'progress', text: content }) + '\n'));
+      controller.enqueue(encoder.encode(JSON.stringify({ type: 'progress', sectionIndex, text: content }) + '\n'));
     }
   }
 
