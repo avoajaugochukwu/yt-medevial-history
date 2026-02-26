@@ -6,13 +6,12 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
 
     const audio = formData.get('audio') as File | null;
-    const srt = formData.get('srt') as File | null;
     const originalScript = formData.get('original_script') as string | null;
     const sceneData = formData.get('scene_data') as string | null;
 
-    if (!audio || !srt || !originalScript || !sceneData) {
+    if (!audio || !originalScript || !sceneData) {
       return NextResponse.json(
-        { error: 'Missing required fields: audio, srt, original_script, scene_data' },
+        { error: 'Missing required fields: audio, original_script, scene_data' },
         { status: 400 },
       );
     }
@@ -20,7 +19,6 @@ export async function POST(request: NextRequest) {
     // Forward to Railway service
     const forwardData = new FormData();
     forwardData.append('audio', audio);
-    forwardData.append('srt', srt);
     forwardData.append('original_script', originalScript);
     forwardData.append('scene_data', sceneData);
 

@@ -69,16 +69,14 @@ const originalScript = script?.polished_content || script?.content || '';
 | Field | Type | Description |
 |-------|------|-------------|
 | `audio` | File | Audio narration file (mp3, wav, m4a, aac) |
-| `srt` | File | SRT subtitle file |
 | `original_script` | string | Plain text of the full narration script |
 | `scene_data` | string | JSON string of the scene array (see Section 2) |
 
-All four fields are **required**. The proxy route validates this and returns a 400 if any are missing.
+All three fields are **required**. The proxy route validates this and returns a 400 if any are missing.
 
 ```typescript
 const formData = new FormData();
 formData.append('audio', audioFile);
-formData.append('srt', srtFile);
 formData.append('original_script', originalScript);
 formData.append('scene_data', sceneData);
 
@@ -154,7 +152,7 @@ const showPolling = isPolling;               // job submitted, waiting
 const showResult  = jobId && isTerminal;     // job finished (success or failure)
 ```
 
-**Upload** — User selects an SRT file and an audio file, then clicks "Generate Video".
+**Upload** — User selects an audio file, then clicks "Generate Video".
 **Polling** — Spinner with progress bar. Displays job ID and percentage.
 **Result** — Success card with download link, or error card with message. Both offer a reset button.
 
@@ -170,7 +168,7 @@ const { jobId, status, submitJob, isPolling, error, stopPolling } = useVideoGene
 |-------|------|-------------|
 | `jobId` | `string \| null` | The job ID returned after submission, `null` before first submit |
 | `status` | `VideoGenerationStatus \| null` | Latest polled status object (`status`, `progress`, `output_url`, `error`) |
-| `submitJob` | `(audio: File, srt: File, originalScript: string, sceneData: string) => Promise<string \| null>` | Submit a job; returns the job ID or `null` on failure. Polling starts automatically. |
+| `submitJob` | `(audio: File, originalScript: string, sceneData: string) => Promise<string \| null>` | Submit a job; returns the job ID or `null` on failure. Polling starts automatically. |
 | `isPolling` | `boolean` | `true` while the hook is actively polling for status updates |
 | `error` | `string \| null` | Error message from submission or polling failure |
 | `stopPolling` | `() => void` | Stops the polling interval and sets `isPolling` to `false` |
@@ -179,17 +177,16 @@ const { jobId, status, submitJob, isPolling, error, stopPolling } = useVideoGene
 
 | Input | Accepted extensions | Drop support |
 |-------|-------------------|--------------|
-| SRT subtitle file | `.srt` | Drag-and-drop validated by extension |
 | Audio narration | `.mp3`, `.wav`, `.m4a`, `.aac` | Drag-and-drop validated by extension |
 
-Both inputs support click-to-browse and drag-and-drop.
+The input supports click-to-browse and drag-and-drop.
 
 ### Submit Flow
 
 ```typescript
 const handleGenerate = async () => {
-  if (!srtFile || !audioFile) return;
-  await submitJob(audioFile, srtFile, originalScript, sceneData);
+  if (!audioFile) return;
+  await submitJob(audioFile, originalScript, sceneData);
 };
 ```
 
@@ -202,6 +199,5 @@ To allow re-upload after completion or failure, call `stopPolling()` and clear f
 ```typescript
 const handleReset = () => {
   stopPolling();
-  setSrtFile(null);
   setAudioFile(null);
 };

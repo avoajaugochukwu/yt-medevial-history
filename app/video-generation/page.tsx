@@ -18,7 +18,6 @@ import {
   ArrowRight,
   Upload,
   FileAudio,
-  FileText,
   Video,
   CheckCircle,
   XCircle,
@@ -34,9 +33,7 @@ export default function VideoGenerationPage() {
     useVideoGeneration();
 
   const [audioFile, setAudioFile] = useState<File | null>(null);
-  const [srtFile, setSrtFile] = useState<File | null>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
-  const srtInputRef = useRef<HTMLInputElement>(null);
 
   // Derive state from store
   const originalScript = script?.polished_content || script?.content || '';
@@ -58,16 +55,14 @@ export default function VideoGenerationPage() {
   const isFailed = status?.status === 'failed';
 
   const handleSubmit = () => {
-    if (!audioFile || !srtFile) return;
-    submitJob(audioFile, srtFile, originalScript, sceneData);
+    if (!audioFile) return;
+    submitJob(audioFile, originalScript, sceneData);
   };
 
   const handleReset = () => {
     reset();
     setAudioFile(null);
-    setSrtFile(null);
     if (audioInputRef.current) audioInputRef.current.value = '';
-    if (srtInputRef.current) srtInputRef.current.value = '';
   };
 
   const progressPercent = status?.progress ?? 0;
@@ -82,7 +77,7 @@ export default function VideoGenerationPage() {
               Video Generation
             </h1>
             <p className="text-sm text-gray-600">
-              Upload audio and subtitles to generate your final video
+              Upload audio to generate your final video
             </p>
           </div>
 
@@ -169,7 +164,7 @@ export default function VideoGenerationPage() {
                   Upload Files
                 </CardTitle>
                 <CardDescription>
-                  Provide your audio narration and subtitle file
+                  Provide your audio narration
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -191,28 +186,12 @@ export default function VideoGenerationPage() {
                   </p>
                 </div>
 
-                {/* SRT Upload */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
-                    Subtitle File (SRT)
-                  </label>
-                  <input
-                    ref={srtInputRef}
-                    type="file"
-                    accept=".srt"
-                    onChange={(e) => setSrtFile(e.target.files?.[0] ?? null)}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm file:border-0 file:bg-transparent file:text-sm file:font-medium"
-                  />
-                  <p className="text-xs text-gray-500">Supported: .srt</p>
-                </div>
-
                 {/* Submit */}
                 <div className="flex justify-end">
                   <Button
                     onClick={handleSubmit}
                     disabled={
-                      !audioFile || !srtFile || !hasPrerequisites || isSubmitting
+                      !audioFile || !hasPrerequisites || isSubmitting
                     }
                     className="gap-2"
                     size="lg"

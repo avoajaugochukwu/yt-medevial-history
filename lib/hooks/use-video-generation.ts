@@ -47,7 +47,7 @@ export function useVideoGeneration() {
   );
 
   const submitJob = useCallback(
-    async (audio: File, srt: File, originalScript: string, sceneData: string) => {
+    async (audio: File, originalScript: string, sceneData: string) => {
       setError(null);
       setStatus(null);
       setJobId(null);
@@ -55,7 +55,6 @@ export function useVideoGeneration() {
 
       const formData = new FormData();
       formData.append('audio', audio);
-      formData.append('srt', srt);
       formData.append('original_script', originalScript);
       formData.append('scene_data', sceneData);
 
