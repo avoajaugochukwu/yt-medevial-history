@@ -8,7 +8,6 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Progress } from '@/components/ui/progress';
 import {
   Dialog,
   DialogContent,
@@ -248,7 +247,6 @@ export function CharacterApproval({ script, era, onComplete, onSkip }: Character
     characterSession,
     editingCharacter,
     setEditingCharacter,
-    generationProgress,
     identifyCharacters,
     handleToggleApproval,
     handleEditSave,
@@ -299,9 +297,6 @@ export function CharacterApproval({ script, era, onComplete, onSkip }: Character
   // Generation in progress
   if (characterSession.status === 'generating_references') {
     const approvedCount = characterSession.characters.filter((c) => c.is_approved).length;
-    const completedCount = characterSession.characters.filter(
-      (c) => c.is_approved && c.reference_generation_status === 'completed'
-    ).length;
 
     return (
       <Card>
@@ -315,14 +310,6 @@ export function CharacterApproval({ script, era, onComplete, onSkip }: Character
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span>Progress</span>
-              <span>{completedCount} / {approvedCount}</span>
-            </div>
-            <Progress value={generationProgress} />
-          </div>
-
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {characterSession.characters
               .filter((c) => c.is_approved)

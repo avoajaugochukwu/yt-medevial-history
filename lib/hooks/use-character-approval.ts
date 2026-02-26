@@ -11,7 +11,6 @@ export function useCharacterApproval(
 ) {
   const { characterSession, setCharacterSession, updateCharacter } = useSessionStore();
   const [editingCharacter, setEditingCharacter] = useState<CharacterWithReference | null>(null);
-  const [generationProgress, setGenerationProgress] = useState(0);
   const hasStartedRef = useRef(false);
 
   const identifyCharacters = useCallback(async () => {
@@ -127,7 +126,6 @@ export function useCharacterApproval(
         }
 
         completed++;
-        setGenerationProgress(Math.round((completed / approvedCharacters.length) * 100));
       })
     );
 
@@ -188,7 +186,6 @@ export function useCharacterApproval(
     characterSession,
     editingCharacter,
     setEditingCharacter,
-    generationProgress,
     identifyCharacters,
     handleToggleApproval,
     handleEditSave,

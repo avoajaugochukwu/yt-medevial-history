@@ -48,10 +48,6 @@ export async function POST(request: NextRequest) {
     const client = getOpenAIClient();
     const prompt = CHARACTER_IDENTIFICATION_PROMPT(script, era || 'Other');
 
-    console.log('[Character Identification] Analyzing script for historical figures...');
-    console.log(`[Character Identification] Script length: ${script.length} characters`);
-    console.log(`[Character Identification] Era: ${era || 'Other'}`);
-
     const response = await client.chat.completions.create({
       model: MODELS.GPT4O,
       messages: [
@@ -91,11 +87,6 @@ export async function POST(request: NextRequest) {
       reference_generation_status: 'pending' as const,
       is_approved: true, // Default to approved, user can deselect
     }));
-
-    console.log(`[Character Identification] Found ${characters.length} characters`);
-    console.log(
-      `[Character Identification] Primary: ${data.primary_count}, Secondary: ${data.secondary_count}`
-    );
 
     return NextResponse.json({
       success: true,

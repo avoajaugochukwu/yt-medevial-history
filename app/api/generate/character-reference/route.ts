@@ -38,11 +38,6 @@ ${character.visual_description}
 ${character.historical_period_appearance}
 ${CHARACTER_PORTRAIT_STYLE_SUFFIX}`;
 
-    console.log(`[Character Reference] Generating portrait for: ${character.name}`);
-    console.log(`[Character Reference] Role: ${character.role}`);
-    console.log(`[Character Reference] Prominence: ${character.prominence}`);
-    console.log(`[Character Reference] Prompt length: ${portraitPrompt.length} characters`);
-
     const result = (await fal.subscribe(MODELS.FAL_NANO_BANANA, {
       input: {
         prompt: portraitPrompt,
@@ -54,18 +49,12 @@ ${CHARACTER_PORTRAIT_STYLE_SUFFIX}`;
       logs: false,
     })) as FalImageResult;
 
-    console.log('[Character Reference] FAL raw response:', JSON.stringify(result).substring(0, 500));
-
     // Extract image URL from response
     const imageUrl = result.data?.images?.[0]?.url || result.images?.[0]?.url;
-
-    console.log('[Character Reference] Extracted URL:', imageUrl);
 
     if (!imageUrl) {
       throw new Error('No image URL in response');
     }
-
-    console.log(`[Character Reference] Successfully generated portrait for: ${character.name}`);
 
     return NextResponse.json({
       success: true,
