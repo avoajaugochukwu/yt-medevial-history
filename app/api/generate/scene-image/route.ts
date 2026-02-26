@@ -39,21 +39,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Scene data is required' }, { status: 400 });
     }
 
-    // Handle subscribe/CTA placeholder scenes - skip image generation
-    if (scene.scene_type === 'subscribe') {
-      console.log(`[Scene Image] Scene ${scene.scene_number} is a subscribe placeholder - skipping image generation`);
-      return NextResponse.json({
-        image_url: null,
-        prompt_used: scene.visual_prompt || 'PLACEHOLDER: Subscribe button animation',
-        aspect_ratio: ASPECT_RATIOS.LANDSCAPE,
-        model: 'none',
-        style: 'subscribe-placeholder',
-        is_placeholder: true,
-        character_conditioned: false,
-        character_count: 0,
-      });
-    }
-
     const fal = configureFal();
 
     // Build enhanced prompt with appropriate style based on scene type

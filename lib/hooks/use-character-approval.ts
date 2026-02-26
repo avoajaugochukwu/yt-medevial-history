@@ -87,44 +87,39 @@ export function useCharacterApproval(
 
     let completed = 0;
 
-    const batchSize = 3;
-    for (let i = 0; i < approvedCharacters.length; i += batchSize) {
-      const batch = approvedCharacters.slice(i, i + batchSize);
+    await Promise.all(
+      approvedCharacters.map(async (character) => {
+        updateCharacter(character.id, { reference_generation_status: 'generating' });
 
-      await Promise.all(
-        batch.map(async (character) => {
-          updateCharacter(character.id, { reference_generation_status: 'generating' });
+        try {
+          const response = await fetch('/api/generate/character-reference', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ character }),
+          });
 
-          try {
-            const response = await fetch('/api/generate/character-reference', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ character }),
-            });
-
-            if (!response.ok) {
-              throw new Error('Failed to generate portrait');
-            }
-
-            const data = await response.json();
-
-            updateCharacter(character.id, {
-              reference_image_url: data.image_url,
-              reference_generation_status: 'completed',
-            });
-          } catch (error) {
-            console.error(`Failed to generate portrait for ${character.name}:`, error);
-            updateCharacter(character.id, {
-              reference_generation_status: 'error',
-              error_message: error instanceof Error ? error.message : 'Unknown error',
-            });
+          if (!response.ok) {
+            throw new Error('Failed to generate portrait');
           }
 
-          completed++;
-          setGenerationProgress(Math.round((completed / approvedCharacters.length) * 100));
-        })
-      );
-    }
+          const data = await response.json();
+
+          updateCharacter(character.id, {
+            reference_image_url: data.image_url,
+            reference_generation_status: 'completed',
+          });
+        } catch (error) {
+          console.error(`Failed to generate portrait for ${character.name}:`, error);
+          updateCharacter(character.id, {
+            reference_generation_status: 'error',
+            error_message: error instanceof Error ? error.message : 'Unknown error',
+          });
+        }
+
+        completed++;
+        setGenerationProgress(Math.round((completed / approvedCharacters.length) * 100));
+      })
+    );
 
     // Read fresh state from store to avoid stale closure
     const latestSession = useSessionStore.getState().characterSession;

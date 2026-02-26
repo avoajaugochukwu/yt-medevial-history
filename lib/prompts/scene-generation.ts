@@ -77,12 +77,6 @@ ${sectionText}
 **Map Scene Script Snippets (CRITICAL):**
 Map scenes MUST have script_snippets that contain ONLY location/geographic references, NOT battle action descriptions.
 
-### SUBSCRIBE/CTA SCENE HANDLING (CRITICAL)
-
-When the script contains "smash that subscribe button", "hit subscribe", or similar CTAs:
-1. **Subscribe Placeholder Scene (scene_type: "subscribe")**: script_snippet = CTA text only, visual_prompt = "PLACEHOLDER: Subscribe button animation", shot_type: null
-2. **Following Content Scene**: continues as normal visual scene
-
 ### DIRECTOR RULES (CINEMATIC SHOT SELECTION)
 
 **1. LIST RULE:** Multiple items in sequence → separate short scenes, "Medium Action"

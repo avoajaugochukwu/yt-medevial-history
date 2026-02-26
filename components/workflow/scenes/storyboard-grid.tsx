@@ -17,7 +17,6 @@ import {
   Map,
   Loader2,
   Camera,
-  Bell,
 } from 'lucide-react';
 import { useStoryboardPipeline } from '@/lib/hooks/use-storyboard-pipeline';
 
@@ -71,13 +70,7 @@ function SceneCard({
                 Map
               </Badge>
             )}
-            {scene.scene_type === 'subscribe' && (
-              <Badge variant="destructive" className="flex items-center gap-1">
-                <Bell className="h-3 w-3" />
-                Subscribe
-              </Badge>
-            )}
-            {scene.shot_type && scene.scene_type !== 'map' && scene.scene_type !== 'subscribe' && (
+            {scene.shot_type && scene.scene_type !== 'map' && (
               <Badge variant="outline" className="flex items-center gap-1 text-xs">
                 <Camera className="h-3 w-3" />
                 {scene.shot_type}
@@ -93,13 +86,7 @@ function SceneCard({
         </div>
 
         <div className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden group">
-          {scene.scene_type === 'subscribe' ? (
-            <div className="flex flex-col items-center justify-center h-full bg-red-50">
-              <Bell className="h-12 w-12 text-red-500 mb-2" />
-              <span className="text-sm font-medium text-red-600">Subscribe CTA</span>
-              <span className="text-xs text-red-400">Replace in video editing</span>
-            </div>
-          ) : scene.image_url ? (
+          {scene.image_url ? (
             <>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img

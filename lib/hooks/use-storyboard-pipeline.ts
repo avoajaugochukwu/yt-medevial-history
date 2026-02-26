@@ -7,7 +7,6 @@ import { countWords } from '@/lib/utils/word-count';
 import { WORDS_PER_MINUTE } from '@/lib/config/content';
 
 type AnalysisPhase = 'idle' | 'analyzing' | 'complete';
-type GenerationPhase = 'idle' | 'generating' | 'complete';
 
 export function useStoryboardPipeline() {
   const {
@@ -26,7 +25,6 @@ export function useStoryboardPipeline() {
   } = useSessionStore();
 
   const [analysisPhase, setAnalysisPhase] = useState<AnalysisPhase>('idle');
-  const [generationPhase, setGenerationPhase] = useState<GenerationPhase>('idle');
 
   const hasStartedRef = useRef(false);
   const isMountedRef = useRef(true);
@@ -44,16 +42,6 @@ export function useStoryboardPipeline() {
   const generateSceneImage = useCallback(
     async (scene: StoryboardScene): Promise<boolean> => {
       if (!isMountedRef.current) return false;
-
-      if (scene.scene_type === 'subscribe') {
-        if (isMountedRef.current) {
-          updateStoryboardScene(scene.scene_number, {
-            generation_status: 'completed',
-            image_url: undefined,
-          });
-        }
-        return true;
-      }
 
       updateStoryboardScene(scene.scene_number, { generation_status: 'generating' });
 
@@ -88,7 +76,6 @@ export function useStoryboardPipeline() {
         if (isMountedRef.current) {
           updateStoryboardScene(scene.scene_number, {
             image_url: data.image_url,
-            visual_prompt: data.prompt_used,
             generation_status: 'completed',
           });
         }
@@ -111,15 +98,9 @@ export function useStoryboardPipeline() {
     async (scenesToGenerate: StoryboardScene[]) => {
       if (!isMountedRef.current) return;
 
-      setGenerationPhase('generating');
-
       await Promise.allSettled(
         scenesToGenerate.map((scene) => generateSceneImage(scene))
       );
-
-      if (isMountedRef.current) {
-        setGenerationPhase('complete');
-      }
     },
     [generateSceneImage]
   );
@@ -269,7 +250,7 @@ export function useStoryboardPipeline() {
   }, [storyboardScenes, generateAllSceneImages]);
 
   const isAnalyzing = analysisPhase === 'analyzing';
-  const isGenerating = generationPhase === 'generating' || generatingScenes > 0;
+  const isGenerating = generatingScenes > 0;
   const showPlaceholders = isAnalyzing && storyboardScenes.every((s) => !s.script_snippet);
 
   return {

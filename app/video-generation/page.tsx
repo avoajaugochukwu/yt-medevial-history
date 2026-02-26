@@ -24,6 +24,7 @@ import {
   XCircle,
   AlertTriangle,
   Loader2,
+  Download,
 } from 'lucide-react';
 
 export default function VideoGenerationPage() {
@@ -238,14 +239,12 @@ export default function VideoGenerationPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {status.video_url && (
+                {jobId && (
                   <a
-                    href={status.video_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 rounded-md bg-green-700 px-4 py-2 text-sm font-medium text-white hover:bg-green-800 transition-colors"
+                    href={`/api/video/download/${jobId}`}
+                    className="inline-flex items-center gap-2 rounded-md bg-green-700 px-6 py-3 text-sm font-medium text-white hover:bg-green-800 transition-colors"
                   >
-                    <Video className="h-4 w-4" />
+                    <Download className="h-4 w-4" />
                     Download Video
                   </a>
                 )}

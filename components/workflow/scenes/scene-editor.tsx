@@ -30,7 +30,6 @@ import {
   Image as ImageIcon,
   Map,
   Camera,
-  Bell,
 } from 'lucide-react';
 
 interface SceneEditorProps {
@@ -58,8 +57,10 @@ export function SceneEditor({ scene, isOpen, onClose, onNavigate }: SceneEditorP
 
   const [editedPrompt, setEditedPrompt] = useState('');
   const [isEditing, setIsEditing] = useState(false);
-  const [isRegenerating, setIsRegenerating] = useState(false);
   const [editedShotType, setEditedShotType] = useState<CinematicShotType | undefined>(undefined);
+
+  // Derive regeneration state from the store (per-scene) instead of local state
+  const isRegenerating = scene?.is_regenerating ?? false;
 
   React.useEffect(() => {
     if (scene) {
@@ -72,7 +73,6 @@ export function SceneEditor({ scene, isOpen, onClose, onNavigate }: SceneEditorP
   const handleRegenerate = async () => {
     if (!scene) return;
 
-    setIsRegenerating(true);
     updateStoryboardScene(scene.scene_number, {
       is_regenerating: true,
       generation_status: 'generating',
@@ -97,14 +97,13 @@ export function SceneEditor({ scene, isOpen, onClose, onNavigate }: SceneEditorP
       }
 
       const { image_url, prompt_used } = await response.json();
-      
+
       updateStoryboardScene(scene.scene_number, {
         image_url,
-        visual_prompt: prompt_used,
         generation_status: 'completed',
         is_regenerating: false,
       });
-      
+
       setIsEditing(false);
     } catch (error) {
       console.error('Scene regeneration error:', error);
@@ -113,8 +112,6 @@ export function SceneEditor({ scene, isOpen, onClose, onNavigate }: SceneEditorP
         error_message: 'Failed to regenerate image',
         is_regenerating: false,
       });
-    } finally {
-      setIsRegenerating(false);
     }
   };
 
@@ -134,7 +131,6 @@ export function SceneEditor({ scene, isOpen, onClose, onNavigate }: SceneEditorP
     updateStoryboardScene(scene.scene_number, { shot_type: newShotType });
 
     // Trigger regeneration with new shot type
-    setIsRegenerating(true);
     updateStoryboardScene(scene.scene_number, {
       is_regenerating: true,
       generation_status: 'generating',
@@ -167,8 +163,6 @@ export function SceneEditor({ scene, isOpen, onClose, onNavigate }: SceneEditorP
         error_message: 'Failed to regenerate with new shot type',
         is_regenerating: false,
       });
-    } finally {
-      setIsRegenerating(false);
     }
   };
 
@@ -189,12 +183,6 @@ export function SceneEditor({ scene, isOpen, onClose, onNavigate }: SceneEditorP
                 <Badge variant="secondary" className="flex items-center gap-1">
                   <Map className="h-3 w-3" />
                   Map
-                </Badge>
-              )}
-              {scene.scene_type === 'subscribe' && (
-                <Badge variant="destructive" className="flex items-center gap-1">
-                  <Bell className="h-3 w-3" />
-                  Subscribe
                 </Badge>
               )}
             </div>
@@ -224,14 +212,7 @@ export function SceneEditor({ scene, isOpen, onClose, onNavigate }: SceneEditorP
         <div className="space-y-4">
           {/* Scene Image */}
           <div className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden">
-            {scene.scene_type === 'subscribe' ? (
-              // Subscribe placeholder display
-              <div className="flex flex-col items-center justify-center h-full bg-red-50">
-                <Bell className="h-16 w-16 text-red-500 mb-2" />
-                <span className="text-lg font-medium text-red-600">Subscribe CTA Placeholder</span>
-                <span className="text-sm text-red-400 mt-1">Replace with your subscribe animation in video editing</span>
-              </div>
-            ) : isRegenerating ? (
+            {isRegenerating ? (
               <div className="flex items-center justify-center h-full">
                 <LoadingSpinner size="lg" text="Regenerating scene..." />
               </div>
@@ -291,7 +272,7 @@ export function SceneEditor({ scene, isOpen, onClose, onNavigate }: SceneEditorP
           )}
 
           {/* Shot Type Selector (for visual scenes only - not maps or subscribe) */}
-          {scene.scene_type !== 'map' && scene.scene_type !== 'subscribe' && (
+          {scene.scene_type !== 'map' && (
             <div className="space-y-2">
               <label className="text-sm font-medium flex items-center gap-2">
                 <Camera className="h-4 w-4" />
@@ -319,69 +300,57 @@ export function SceneEditor({ scene, isOpen, onClose, onNavigate }: SceneEditorP
             </div>
           )}
 
-          {/* Visual Prompt (not shown for subscribe scenes) */}
-          {scene.scene_type !== 'subscribe' && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium">Visual Description:</label>
-                {!isEditing && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsEditing(true)}
-                  >
-                    Edit Description
-                  </Button>
-                )}
-              </div>
-
-              {isEditing ? (
-                <div className="space-y-2">
-                  <Textarea
-                    value={editedPrompt}
-                    onChange={(e) => setEditedPrompt(e.target.value)}
-                    className="min-h-[100px]"
-                    placeholder="Describe the visual scene..."
-                  />
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      onClick={handleSavePrompt}
-                      disabled={isRegenerating}
-                    >
-                      <Save className="h-4 w-4 mr-1" />
-                      Save & Regenerate
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        setIsEditing(false);
-                        setEditedPrompt(scene.visual_prompt);
-                      }}
-                    >
-                      <X className="h-4 w-4 mr-1" />
-                      Cancel
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="p-3 bg-gray-50 rounded-md">
-                  <p className="text-sm">{scene.visual_prompt}</p>
-                </div>
+          {/* Visual Prompt */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium">Visual Description:</label>
+              {!isEditing && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsEditing(true)}
+                >
+                  Edit Description
+                </Button>
               )}
             </div>
-          )}
 
-          {/* Subscribe Scene Info */}
-          {scene.scene_type === 'subscribe' && (
-            <div className="p-4 bg-red-50 rounded-lg border border-red-200">
-              <h4 className="font-medium text-red-700 mb-2">Subscribe CTA Placeholder</h4>
-              <p className="text-sm text-red-600">
-                This is a placeholder for your subscribe call-to-action. Replace this scene with your own subscribe animation or overlay in your video editing software.
-              </p>
-            </div>
-          )}
+            {isEditing ? (
+              <div className="space-y-2">
+                <Textarea
+                  value={editedPrompt}
+                  onChange={(e) => setEditedPrompt(e.target.value)}
+                  className="min-h-[100px]"
+                  placeholder="Describe the visual scene..."
+                />
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    onClick={handleSavePrompt}
+                    disabled={isRegenerating}
+                  >
+                    <Save className="h-4 w-4 mr-1" />
+                    Save & Regenerate
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setIsEditing(false);
+                      setEditedPrompt(scene.visual_prompt);
+                    }}
+                  >
+                    <X className="h-4 w-4 mr-1" />
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="p-3 bg-gray-50 rounded-md">
+                <p className="text-sm">{scene.visual_prompt}</p>
+              </div>
+            )}
+          </div>
 
         </div>
 
@@ -392,15 +361,13 @@ export function SceneEditor({ scene, isOpen, onClose, onNavigate }: SceneEditorP
           >
             Close
           </Button>
-          {scene.scene_type !== 'subscribe' && (
-            <Button
-              onClick={handleRegenerate}
-              disabled={isRegenerating || isEditing}
-            >
-              <RefreshCw className="h-4 w-4 mr-1" />
-              Regenerate Image
-            </Button>
-          )}
+          <Button
+            onClick={handleRegenerate}
+            disabled={isRegenerating || isEditing}
+          >
+            <RefreshCw className="h-4 w-4 mr-1" />
+            Regenerate Image
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
