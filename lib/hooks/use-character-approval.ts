@@ -55,6 +55,16 @@ export function useCharacterApproval(
     }
   }, [characterSession, identifyCharacters]);
 
+  // Auto-start portrait generation when characters are identified
+  useEffect(() => {
+    if (characterSession?.status === 'awaiting_approval') {
+      const approvedCount = characterSession.characters.filter(c => c.is_approved).length;
+      if (approvedCount > 0) {
+        generatePortraits();
+      }
+    }
+  }, [characterSession?.status]);
+
   const handleToggleApproval = useCallback(
     (id: string) => {
       updateCharacter(id, {

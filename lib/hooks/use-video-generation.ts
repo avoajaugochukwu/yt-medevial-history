@@ -9,6 +9,7 @@ export function useVideoGeneration() {
   const [status, setStatus] = useState<VideoGenerationStatus | null>(null);
   const [isPolling, setIsPolling] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const stopPolling = useCallback(() => {
@@ -50,6 +51,7 @@ export function useVideoGeneration() {
       setError(null);
       setStatus(null);
       setJobId(null);
+      setIsSubmitting(true);
 
       const formData = new FormData();
       formData.append('audio', audio);
@@ -79,6 +81,8 @@ export function useVideoGeneration() {
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to submit job';
         setError(message);
+      } finally {
+        setIsSubmitting(false);
       }
     },
     [pollStatus],
@@ -100,5 +104,5 @@ export function useVideoGeneration() {
     };
   }, []);
 
-  return { jobId, status, isPolling, error, submitJob, reset };
+  return { jobId, status, isPolling, isSubmitting, error, submitJob, reset };
 }

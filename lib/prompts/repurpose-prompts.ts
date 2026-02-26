@@ -91,11 +91,11 @@ Return a JSON object (and ONLY valid JSON, no markdown code blocks):
 // PHASE 2: SCRIPT REWRITE PROMPT
 // ============================================================================
 
-export const SCRIPT_REWRITE_SYSTEM = `You are a master scriptwriter for tactical battle narratives, known for creating highly engaging, retention-optimized content. You specialize in "Battle Cold Open" technique — dropping viewers directly into the climactic battle, then rewinding to tell the story, and finally returning to the battle with full context.
+export const SCRIPT_REWRITE_SYSTEM = `You are a master scriptwriter for tactical battle narratives, known for creating highly engaging, retention-optimized content. You specialize in "Battle Cold Open" technique - dropping viewers directly into the climactic battle, then rewinding to tell the story, and finally returning to the battle with full context.
 
 ${CONTENT_SAFETY_SYSTEM_DIRECTIVE}
 
-Focus on STRATEGY, TACTICAL ACTION, IMPACT, and OUTCOMES — never sensory details of death or decay.`;
+Focus on STRATEGY, TACTICAL ACTION, IMPACT, and OUTCOMES - never sensory details of death or decay.`;
 
 export const SCRIPT_REWRITE_PROMPT = (
   extraction: YouTubeExtraction,
@@ -151,11 +151,11 @@ ${extraction.transcript.text}
 - Drop directly into tactical chaos: formations clashing, flanks collapsing, the moment of crisis
 - Use PRESENT TENSE: "The cavalry charges", "The line shatters", "40,000 men are now in the kill zone"
 - Convey SCALE (numbers) and STAKES (what's about to happen)
-- NO gore — focus on tactical action and unit movements
+- NO gore - focus on tactical action and unit movements
 - Make viewers feel like they're watching the disaster unfold in real-time
 
 Example Battle Cold Open:
-"The Roman line shatters. 35,000 legionaries — the finest soldiers in the world — are now surrounded. Parthian horse archers circle like wolves, loosing volley after volley into the packed mass. The center holds for now, but both flanks are gone. There's nowhere to run. The kill ratio is about to hit 50-to-1."
+"The Roman line shatters. 35,000 legionaries - the finest soldiers in the world - are now surrounded. Parthian horse archers circle like wolves, loosing volley after volley into the packed mass. The center holds for now, but both flanks are gone. There's nowhere to run. The kill ratio is about to hit 50-to-1."
 
 **2. QUICK FLASHBACK TRANSITION (~30 words, 8 seconds)**
 - After the battle cold open, add a single transition sentence that signals we're rewinding

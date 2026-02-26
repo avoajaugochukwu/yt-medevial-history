@@ -11,6 +11,7 @@ import {
 import { parseJsonObject } from '@/lib/api/json-parser';
 import { validateRequest, isValidationError, FinalScriptSchema } from '@/lib/api/validate';
 import { countWords } from '@/lib/utils/word-count';
+import { sanitizeEmDashes } from '@/lib/utils/sanitize-script';
 import { WORDS_PER_MINUTE } from '@/lib/config/content';
 import type {
   TacticalResearch,
@@ -79,12 +80,13 @@ export async function POST(request: NextRequest) {
     console.log('[Recursive Script] Phase 1: Generating hook...');
 
     const hookPrompt = HOOK_PROMPT(research);
-    const hook = await generateWithClaude(hookPrompt, SYSTEM_PROMPT, 0.8, 500);
+    let hook = await generateWithClaude(hookPrompt, SYSTEM_PROMPT, 0.8, 500);
 
     if (!hook || hook.trim().length === 0) {
       throw new Error('Failed to generate hook');
     }
 
+    hook = sanitizeEmDashes(hook);
     console.log(`[Recursive Script] Hook generated: ${countWords(hook)} words`);
 
     // ========================================================================
@@ -143,6 +145,7 @@ export async function POST(request: NextRequest) {
       let batchData: { script_chunk: string; next_prompt_payload: RecursivePromptPayload };
       const parsed = parseJsonObject<{ script_chunk: string; next_prompt_payload: RecursivePromptPayload }>(batchResponse);
       if (parsed) {
+        parsed.script_chunk = sanitizeEmDashes(parsed.script_chunk);
         batchData = parsed;
       } else {
         console.error(`[Recursive Script] Batch ${batchNumber} parse error, using raw response`);
@@ -262,6 +265,11 @@ function validateStyleCompliance(script: string): string[] {
     violations.push(
       `Low mandatory terminology usage: ${mandatoryCount}/10 terms found (recommend 5+)`
     );
+  }
+
+  // Check for em dashes (prohibited)
+  if (script.includes('\u2014') || script.includes('\u2013')) {
+    violations.push('Em dash (—) detected in script output');
   }
 
   // Check for contraction usage (should use contractions)

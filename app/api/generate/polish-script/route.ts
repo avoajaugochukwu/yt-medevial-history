@@ -3,6 +3,7 @@ import { generateWithClaude } from '@/lib/ai/anthropic';
 import { SCRIPT_POLISH_PROMPT, SYSTEM_PROMPT } from '@/lib/prompts/war-room';
 import { validateRequest, isValidationError, PolishScriptSchema } from '@/lib/api/validate';
 import { WORDS_PER_MINUTE } from '@/lib/config/content';
+import { sanitizeEmDashes } from '@/lib/utils/sanitize-script';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120; // 2 minutes for rewriting long scripts
@@ -35,12 +36,14 @@ export async function POST(request: NextRequest) {
 
     // Use moderate temperature for creative but controlled rewriting
     // Higher max tokens to accommodate long scripts
-    const polishedContent = await generateWithClaude(
+    let polishedContent = await generateWithClaude(
       polishPrompt,
       SYSTEM_PROMPT,
       0.7,
       12000 // Allow up to ~9000 words for 35-minute scripts
     );
+
+    polishedContent = sanitizeEmDashes(polishedContent);
 
     // Calculate word count
     const wordCount = polishedContent.split(/\s+/).filter(Boolean).length;

@@ -31,7 +31,7 @@ SIMPLIFY OR DROP RULE:
 - "impaled bodies" → "executed prisoners"
 - "the corpse of X displayed on a stake" → "X was killed and displayed as a message"
 
-REQUIRED APPROACH: Treat casualties as "unit deletion" or "manpower loss." Describe plague/mass death as "sanitation debuff" or "health mechanic." Your framework is "Abstraction over Sensation" — describe THAT something happened (statistics, mechanics), never HOW it looked, smelled, or sounded.`;
+REQUIRED APPROACH: Treat casualties as "unit deletion" or "manpower loss." Describe plague/mass death as "sanitation debuff" or "health mechanic." Your framework is "Abstraction over Sensation" - describe THAT something happened (statistics, mechanics), never HOW it looked, smelled, or sounded.`;
 
 /**
  * Content safety filter for individual prompt sections.
@@ -73,7 +73,7 @@ For psychological warfare (e.g., Vlad's stakes): Show DISTANT silhouettes or sym
  * Translation guide for converting sensory language to mechanical/statistical language.
  * Used in RECURSIVE_BATCH_PROMPT and SCRIPT_REWRITE_PROMPT.
  */
-export const CONTENT_SAFETY_TRANSLATION_GUIDE = `**TRANSLATION GUIDE — Use These Patterns:**
+export const CONTENT_SAFETY_TRANSLATION_GUIDE = `**TRANSLATION GUIDE - Use These Patterns:**
 
 | REJECTED (sensory) | APPROVED (mechanical) |
 |---|---|

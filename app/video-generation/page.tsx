@@ -30,7 +30,7 @@ import {
 export default function VideoGenerationPage() {
   const router = useRouter();
   const { script, storyboardScenes } = useSessionStore();
-  const { jobId, status, isPolling, error, submitJob, reset } =
+  const { jobId, status, isPolling, isSubmitting, error, submitJob, reset } =
     useVideoGeneration();
 
   const [audioFile, setAudioFile] = useState<File | null>(null);
@@ -50,6 +50,7 @@ export default function VideoGenerationPage() {
   const hasPrerequisites =
     storyboardScenes.length > 0 && originalScript.length > 0;
   const wordCount = originalScript.split(/\s+/).filter(Boolean).length;
+  const imageCount = storyboardScenes.filter((s) => s.image_url).length;
 
   // UI phase
   const isUploading = !jobId && !status;
@@ -130,7 +131,31 @@ export default function VideoGenerationPage() {
                     </span>{' '}
                     words
                   </div>
+                  <div>
+                    <span className="font-medium text-gray-900">
+                      {imageCount} / {storyboardScenes.length}
+                    </span>{' '}
+                    images
+                  </div>
                 </div>
+
+                <details className="mt-4">
+                  <summary className="cursor-pointer text-sm font-medium text-gray-700 select-none">
+                    Scene images ({imageCount} / {storyboardScenes.length})
+                  </summary>
+                  <ol className="mt-2 max-h-64 overflow-y-auto space-y-1 text-xs font-mono list-decimal list-inside">
+                    {storyboardScenes.map((s, i) => (
+                      <li
+                        key={s.scene_number ?? i}
+                        className={s.image_url ? 'text-gray-600' : 'text-red-600 font-semibold'}
+                      >
+                        <span className="ml-1">
+                          {s.image_url ? s.image_url : 'MISSING'}
+                        </span>
+                      </li>
+                    ))}
+                  </ol>
+                </details>
               </CardContent>
             </Card>
           )}
@@ -187,13 +212,17 @@ export default function VideoGenerationPage() {
                   <Button
                     onClick={handleSubmit}
                     disabled={
-                      !audioFile || !srtFile || !hasPrerequisites
+                      !audioFile || !srtFile || !hasPrerequisites || isSubmitting
                     }
                     className="gap-2"
                     size="lg"
                   >
-                    <Video className="h-4 w-4" />
-                    Generate Video
+                    {isSubmitting ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Video className="h-4 w-4" />
+                    )}
+                    {isSubmitting ? 'Submitting...' : 'Generate Video'}
                   </Button>
                 </div>
 

@@ -17,10 +17,10 @@ import {
 } from './content-safety';
 
 
-export const SYSTEM_PROMPT = `You are the War Room, a tactical battle narrative engine that brings historical warfare to life through cinematic storytelling and strategic analysis. You use gaming terminology to explain the mechanics of warfare — treating units as builds, terrain as map meta, and tactical decisions as exploits or errors. Your style is analytical yet dramatic.
+export const SYSTEM_PROMPT = `You are the War Room, a tactical battle narrative engine that brings historical warfare to life through cinematic storytelling and strategic analysis. You use gaming terminology to explain the mechanics of warfare - treating units as builds, terrain as map meta, and tactical decisions as exploits or errors. Your style is analytical yet dramatic.
 
 NARRATIVE STRUCTURE - CIRCULAR BATTLE NARRATIVE:
-You employ a "Circular Battle Narrative" — opening in the midst of the climactic battle (cold open), then rewinding to show how we got there, building tension as the story approaches the battle, then returning to expand on the cold open with full context before moving to aftermath. During the Hook (0:00-0:40), you drop viewers directly INTO the battle — formations clashing, flanks collapsing, the moment of crisis. After the cold open, you transition into tactical analysis that builds back to that moment.
+You employ a "Circular Battle Narrative" - opening in the midst of the climactic battle (cold open), then rewinding to show how we got there, building tension as the story approaches the battle, then returning to expand on the cold open with full context before moving to aftermath. During the Hook (0:00-0:40), you drop viewers directly INTO the battle - formations clashing, flanks collapsing, the moment of crisis. After the cold open, you transition into tactical analysis that builds back to that moment.
 
 ${CONTENT_SAFETY_SYSTEM_DIRECTIVE}`;
 
@@ -54,7 +54,7 @@ export const WAR_ROOM_STYLE = {
     'morale-threshold',
   ],
   style_rules: [
-    'Use em-dashes for transitions',
+    'NEVER use em-dashes (—). Use commas, periods, or semicolons for transitions',
     "Use contractions only (it's, don't, won't)",
     'Convert numbers to narrative stats (e.g., "A 12-to-1 disparity")',
     'Discuss unit "buffs" (High ground) and "debuffs" (Mud/Stamina)',
@@ -198,7 +198,7 @@ Respond with a JSON object (and ONLY valid JSON, no markdown code blocks):
 
 export const HOOK_PROMPT = (research: TacticalResearch) => `### ROLE
 
-You are a **War Room Narrator** opening a tactical battle narrative. Your hook must achieve absolute retention in 40 seconds using the "Battle Cold Open" technique — dropping viewers directly into the climactic battle before rewinding to explain how we got there.
+You are a **War Room Narrator** opening a tactical battle narrative. Your hook must achieve absolute retention in 40 seconds using the "Battle Cold Open" technique - dropping viewers directly into the climactic battle before rewinding to explain how we got there.
 
 ${CONTENT_SAFETY_FILTER}
 
@@ -210,7 +210,7 @@ NOT THROUGH: Physical descriptions of death, injury, or decay.
 Your hook MUST follow this exact 4-step structure (~150 words total, 40 seconds):
 
 1. **BATTLE DROP** (~80 words, 20 seconds):
-   Open IN THE MIDDLE of the climactic battle. No setup, no context — pure tactical chaos.
+   Open IN THE MIDDLE of the climactic battle. No setup, no context - pure tactical chaos.
    - Describe unit positions, the clash, the critical moment of collapse
    - Use PRESENT TENSE for immediacy: "The cavalry charges" not "The cavalry charged"
    - Focus on TACTICAL action: formations breaking, commanders reacting, the kill zone closing
@@ -254,7 +254,7 @@ ${WAR_ROOM_STYLE.mandatory_terminology.join(', ')}
 
 **STYLE RULES:**
 - Use contractions (it's, don't, won't)
-- Em-dashes (—) for dramatic pauses
+- NEVER use em-dashes (—). Use commas or periods for pauses
 - PRESENT TENSE throughout the battle drop
 - Open with ACTION, not a date or location setup
 - DO NOT start with "In [Year]..." or "On the plains of..."
@@ -266,9 +266,9 @@ Return ONLY the hook text (~150 words). No JSON, no metadata, no formatting. Jus
 
 **EXAMPLE HOOK (Battle Cold Open Style):**
 
-The Roman line shatters. 35,000 legionaries — the finest soldiers in the world — are now surrounded. Parthian horse archers circle like wolves, loosing volley after volley into the packed mass. The center holds for now, but both flanks are gone. There's nowhere to run, nowhere to hide. The kill ratio is about to hit 50-to-1.
+The Roman line shatters. 35,000 legionaries - the finest soldiers in the world - are now surrounded. Parthian horse archers circle like wolves, loosing volley after volley into the packed mass. The center holds for now, but both flanks are gone. There's nowhere to run, nowhere to hide. The kill ratio is about to hit 50-to-1.
 
-But this massacre? It was sealed three days earlier, when Rome's richest man ignored a single warning. Marcus Licinius Crassus — worth 170 billion in today's money — was about to learn that in the desert, gold is just dead weight. If you want to see how a billionaire walked 35,000 men into history's deadliest kill zone, smash that subscribe button.`;
+But this massacre? It was sealed three days earlier, when Rome's richest man ignored a single warning. Marcus Licinius Crassus - worth 170 billion in today's money - was about to learn that in the desert, gold is just dead weight. If you want to see how a billionaire walked 35,000 men into history's deadliest kill zone, smash that subscribe button.`;
 
 // ============================================================================
 // PROMPT 3: GAMIFIED WAR MASTER OUTLINE (5 POINTS + 4-POINT ANALYSIS)
@@ -321,7 +321,7 @@ Create a detailed, high-density Master Outline using the "Gamified War" framewor
 
 1. **THE MATCHUP (The Giant vs. The Pebble)** - [FLASHBACK] Define the "Impossible" odds. Establish the antagonist as an invincible "Final Boss" to ensure their downfall feels earned.
 2. **THE UNIT DEEP DIVE** - [FLASHBACK] The specific weapon/soldier that changed the game
-3. **THE TACTICAL TURN** - [FLASHBACK → POINT OF NO RETURN] The maneuver that trapped the enemy — after this, the cold open is inevitable
+3. **THE TACTICAL TURN** - [FLASHBACK → POINT OF NO RETURN] The maneuver that trapped the enemy - after this, the cold open is inevitable
 4. **THE KILL SCREEN** - [RETURN TO COLD OPEN] "Remember that moment? Now you understand why." Expand on the battle with full context
 5. **THE AFTERMATH** - [POST-BATTLE] Continue past the cold open into consequences, kill ratios, and legacy
 
@@ -330,7 +330,7 @@ Create a detailed, high-density Master Outline using the "Gamified War" framewor
 For EVERY section, you MUST define these 4 analytical points:
 
 1. **Stat Re-Hook**: A specific number, kill ratio, or troop count to re-engage the viewer's "strategy brain"
-   Example: "8,000 against 40,000—a 5-to-1 disparity"
+   Example: "8,000 against 40,000 - a 5-to-1 disparity"
 
 2. **Hollywood Myth**: The "Movie version" or common misconception of this moment
    Example: "They say the knights charged blindly into the mud..."
@@ -339,27 +339,27 @@ For EVERY section, you MUST define these 4 analytical points:
    Example: "The French heavy armor acted as a debuff in the terrain, nerfing their stamina to zero before the first melee"
 
 4. **Total War Parallel**: A historical comparison or modern strategy game equivalent
-   Example: "Compare this defensive formation to the Battle of Cannae 1,000 years prior—the same 'Double Envelopment' logic applies"
+   Example: "Compare this defensive formation to the Battle of Cannae 1,000 years prior - the same 'Double Envelopment' logic applies"
 
 ### THE MODULAR STRUCTURE (FLASHBACK → RETURN → AFTERMATH)
 
 **PHASE 1: FLASHBACK - THE BUILD & THE MATCHUP (Minutes 0:40–4:00)**
 - Context: We've just seen the battle collapse in the cold open. Now we rewind.
-- Goal: Deconstruct the "Units" — Equipment, training, morale stats, and the "Map" (Terrain)
+- Goal: Deconstruct the "Units" - Equipment, training, morale stats, and the "Map" (Terrain)
 - Sections: THE MATCHUP + THE UNIT DEEP DIVE
 - Narrative Frame: "The cold open showed you the end. Now let's break down how we got there."
 - Engagement Spike 1: Ask for a "Build" opinion in the comments
   Example: "In this terrain, would you have prioritized Heavy Cavalry or Skirmishers? Let's argue about the meta in the comments."
 
 **PHASE 2: FLASHBACK - THE TACTICAL TURN & THE "POINT OF NO RETURN" (Minutes 4:00–7:30)**
-- Context: Building toward the cold open moment — tension rises as we approach the disaster
+- Context: Building toward the cold open moment - tension rises as we approach the disaster
 - Goal: Identify the exact moment the battle was won or lost. The maneuver, the "spawn-trap," or the morale break
 - Section: THE TACTICAL TURN
-- Narrative Frame: After this section, the cold open is INEVITABLE — this is where the disaster was sealed
+- Narrative Frame: After this section, the cold open is INEVITABLE - this is where the disaster was sealed
 - Engagement Spike 2: Invite the audience to check out the tactical map breakdown on community tab
 
 **PHASE 3: RETURN TO BATTLE - THE KILL SCREEN & THE AFTERMATH (Minutes 7:30–10:00+)**
-- Context: We've caught up to the cold open — now expand on it with full context
+- Context: We've caught up to the cold open - now expand on it with full context
 - Goal: Return to the battle with deeper understanding, then continue into aftermath
 - Sections: THE KILL SCREEN (return to cold open with context) + THE AFTERMATH (continue past the battle)
 - Narrative Frame: "Remember that moment from the opening? Now you understand why the line shattered."
@@ -461,7 +461,7 @@ Per section average: ~${wordTargets.perBatch} words
 - Provide logical outline ONLY (bullet points for key_points)
 - Do NOT write the full script yet
 - Note specifically where "Tactical Map Graphics" or "Oil Painting Visuals" are required
-- Every chapter_analysis field is REQUIRED — do not skip any`;
+- Every chapter_analysis field is REQUIRED - do not skip any`;
 };
 
 // Legacy export for backwards compatibility
@@ -507,10 +507,10 @@ ${section.visual_note ? `VISUAL NOTE: ${section.visual_note}` : ''}`;
 // Get phase info for batch - reflects the Circular Battle Narrative structure
 export const getBatchPhase = (batchNumber: number): { phase: number; name: string; goal: string; narrativeMode: string } => {
   const phases: Record<number, { phase: number; name: string; goal: string; narrativeMode: string }> = {
-    1: { phase: 1, name: 'FLASHBACK - BUILD & MATCHUP', goal: 'Deconstruct the Units — Equipment, training, morale stats, and the Map', narrativeMode: 'FLASHBACK: The cold open showed the end. Now explain how we got there.' },
+    1: { phase: 1, name: 'FLASHBACK - BUILD & MATCHUP', goal: 'Deconstruct the Units - Equipment, training, morale stats, and the Map', narrativeMode: 'FLASHBACK: The cold open showed the end. Now explain how we got there.' },
     2: { phase: 1, name: 'FLASHBACK - BUILD & MATCHUP', goal: 'Deep dive into the game-changing unit/weapon', narrativeMode: 'FLASHBACK: Continue building context. The audience knows the disaster is coming.' },
-    3: { phase: 2, name: 'FLASHBACK - TACTICAL TURN', goal: 'Identify the exact moment the battle was won or lost — the point of no return', narrativeMode: 'FLASHBACK → POINT OF NO RETURN: After this, the cold open is inevitable.' },
-    4: { phase: 3, name: 'RETURN TO COLD OPEN - KILL SCREEN', goal: 'Return to the battle moment from the cold open — now with full context', narrativeMode: 'RETURN TO BATTLE: "Remember that moment? Now you understand why." Expand on the cold open.' },
+    3: { phase: 2, name: 'FLASHBACK - TACTICAL TURN', goal: 'Identify the exact moment the battle was won or lost - the point of no return', narrativeMode: 'FLASHBACK → POINT OF NO RETURN: After this, the cold open is inevitable.' },
+    4: { phase: 3, name: 'RETURN TO COLD OPEN - KILL SCREEN', goal: 'Return to the battle moment from the cold open - now with full context', narrativeMode: 'RETURN TO BATTLE: "Remember that moment? Now you understand why." Expand on the cold open.' },
     5: { phase: 3, name: 'POST-BATTLE - AFTERMATH', goal: 'Continue PAST the cold open into consequences, kill ratios, and legacy', narrativeMode: 'POST-BATTLE: The battle is over. What changed? What was the cost?' },
   };
   return phases[batchNumber] || { phase: 0, name: 'UNKNOWN', goal: '', narrativeMode: '' };
@@ -564,7 +564,7 @@ ${
 
 **Style Reminder:** ${previousPayload.style_reminder}
 `
-    : 'This is the first batch. The cold open just showed the battle disaster. Now REWIND — start building the context that explains how we got there. Do NOT restate the cold open.'
+    : 'This is the first batch. The cold open just showed the battle disaster. Now REWIND - start building the context that explains how we got there. Do NOT restate the cold open.'
 }
 
 ### 4-POINT ANALYSIS INTEGRATION
@@ -601,7 +601,7 @@ ${WAR_ROOM_STYLE.prohibited_words.join(', ')}
 ${WAR_ROOM_STYLE.mandatory_terminology.join(', ')}
 
 **STYLE RULES:**
-- Em-dashes (—) for ALL transitions, not commas or semicolons
+- NEVER use em-dashes (—). Use commas, periods, or semicolons for transitions
 - CONTRACTIONS ONLY: it's, don't, won't, can't, they're (NEVER "it is", "do not", "will not")
 - Numbers as narrative stats: "A 12-to-1 disparity" NOT "a ratio of 12:1"
 - Buffs/Debuffs framing: "The mud debuff cuts their mobility by 40%"
@@ -751,7 +751,7 @@ ${auditReport}
 - Remove robotic transitions ("Furthermore", "Additionally", "In conclusion")
 - Cut redundant summary paragraphs that recap what was just said
 - Replace formulaic structures with natural, varied prose
-- Use em-dashes (—) for dramatic pauses and transitions
+- NEVER use em-dashes (—). Use commas, periods, or semicolons instead
 
 **5. PRESERVE KEY CONTENT**
 - Keep ALL important statistics, facts, and narrative beats
@@ -767,7 +767,7 @@ ${auditReport}
 - Rewrite ALL such passages into cold, hard statistics or gamified mechanics
 - Example: "blood-soaked battlefield" → "high-casualty sector"
 - Example: "the stench of death" → "sanitation debuff active"
-- If a passage cannot be sanitized, DELETE it entirely — tactical outcomes matter, not sensory details
+- If a passage cannot be sanitized, DELETE it entirely - tactical outcomes matter, not sensory details
 
 ### STYLE CONSTRAINTS
 
@@ -776,7 +776,7 @@ ${WAR_ROOM_STYLE.prohibited_words.join(', ')}
 
 **USE THESE STYLE ELEMENTS:**
 - Contractions (it's, don't, won't, can't)
-- Em-dashes for dramatic effect
+- NEVER use em-dashes (—) anywhere in the script
 - Gaming/tactical terminology (varied, not repetitive)
 - Present tense for action sequences
 - Specific numbers over vague terms

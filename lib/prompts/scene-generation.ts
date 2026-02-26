@@ -23,7 +23,7 @@ ${CONTENT_SAFETY_VISUAL}
 This is **section ${sectionIndex + 1} of ${totalSections}** of the script. Target scene duration: **~${targetDuration}s per scene**.
 At ~150 words/minute narration, each scene's script_snippet should be approximately **${wordsPerScene} words**. Split at natural breakpoints (sentences, clauses) near this target.
 
-**Create as many scenes as the content below requires.** Cover EVERY sentence of the script section below — do not skip or summarize any content. Each scene's script_snippet should contain a portion of the text, and together all snippets must cover the entire section.
+**Create as many scenes as the content below requires.** Cover EVERY sentence of the script section below - do not skip or summarize any content. Each scene's script_snippet should contain a portion of the text, and together all snippets must cover the entire section.
 
 Scene numbers start at **${startSceneNumber}**.
 
@@ -78,11 +78,11 @@ Return a JSON array of scenes (ONLY valid JSON, no markdown code blocks).
 
 ### CONSTRAINTS
 
-- Cover the ENTIRE script section above — every sentence must appear in a scene's script_snippet
+- Cover the ENTIRE script section above - every sentence must appear in a scene's script_snippet
 - Scene numbers start at ${startSceneNumber} and increment sequentially
 - **EVERY scene MUST have "suggested_duration" and "shot_type" fields**
 - Apply Director Rules for shot_type selection
-- Split text at natural breakpoints (periods, commas, em-dashes, semicolons) keeping snippets near ~${wordsPerScene} words
+- Split text at natural breakpoints (periods, commas, dashes, semicolons) keeping snippets near ~${wordsPerScene} words
 - Historical_context is optional but valuable
 - Maintain chronological order matching the script
 - If the script references modern researchers, archaeologists, historians, or scholars discussing the events, do NOT create a visual scene depicting those modern figures. Instead, keep the visual_prompt focused on the historical subject they are discussing (the artifact, the battlefield, the ruins, etc.). The script_snippet should still include the narration text for coverage, but the visual must depict the historical story, not a modern person.`;
