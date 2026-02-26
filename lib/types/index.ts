@@ -125,9 +125,6 @@ export interface MapData {
   territories: string[];
 }
 
-// Segment type for variable scene timing
-export type SceneSegment = 'hook' | 'setup' | 'core_content' | 'deep_dive' | 'long_tail';
-
 // Cinematic shot types for Director Engine
 export type CinematicShotType =
   | 'Establishing Wide'
@@ -146,8 +143,7 @@ export interface Scene {
   visual_prompt: string;
   historical_context?: string;
   map_data?: MapData;
-  // Variable timing properties
-  segment?: SceneSegment;
+  // Variable timing
   suggested_duration?: number;
   // Character reference support
   character_ids?: string[];  // IDs of characters appearing in this scene

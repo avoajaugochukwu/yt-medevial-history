@@ -15,10 +15,13 @@ export interface SplitResult {
  * ensuring semantic integrity by splitting only at sentence boundaries.
  *
  * Uses the `compromise` NLP library for deterministic sentence tokenization.
+ *
+ * @param sectionSizes - Array of sentence counts per section. The last value
+ *   repeats for any additional sections beyond the array length.
  */
 export function splitTextBySentenceIntegrity(
   longText: string,
-  maxSentencesPerChunk: number = 20
+  sectionSizes: number[]
 ): SplitResult {
   const sentences: string[] = nlp(longText).sentences().json().map((s: { text: string }) => s.text.trim()).filter(Boolean);
 
@@ -33,7 +36,9 @@ export function splitTextBySentenceIntegrity(
   for (const sentence of sentences) {
     currentSentenceBuffer.push(sentence);
 
-    if (currentSentenceBuffer.length >= maxSentencesPerChunk) {
+    const targetSize = sectionSizes[Math.min(chunkId - 1, sectionSizes.length - 1)];
+
+    if (currentSentenceBuffer.length >= targetSize) {
       management_chunks.push({
         chunk_id: chunkId,
         sentence_count: currentSentenceBuffer.length,
