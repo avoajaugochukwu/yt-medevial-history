@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { VIDEO_GENERATION_API_URL, MAX_POLL_RETRIES } from '@/lib/config/video';
+import { VIDEO_GENERATION_API_URL, VIDEO_GENERATION_JOBS_PATH, MAX_POLL_RETRIES } from '@/lib/config/video';
 
 const TRANSIENT_STATUS_CODES = new Set([502, 503, 504]);
 
@@ -38,7 +38,7 @@ export async function GET(
   try {
     const { jobId } = await params;
 
-    const response = await fetchWithRetry(`${VIDEO_GENERATION_API_URL}/status/${jobId}`);
+    const response = await fetchWithRetry(`${VIDEO_GENERATION_API_URL}${VIDEO_GENERATION_JOBS_PATH}/${jobId}`);
 
     if (!response.ok) {
       const errorBody = await response.text();

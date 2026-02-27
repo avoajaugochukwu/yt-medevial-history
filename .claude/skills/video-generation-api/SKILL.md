@@ -11,8 +11,8 @@ description: Guide for preparing scene data and using the video generation API. 
 
 | Endpoint | Method | Purpose |
 |----------|--------|---------|
-| `/generate` | POST | Submit a video generation job |
-| `/status/{job_id}` | GET | Poll job status |
+| `/video-generation/image-script-composition/jobs` | POST | Submit a video generation job |
+| `/video-generation/image-script-composition/jobs/{job_id}` | GET | Poll job status |
 
 The Next.js app proxies these through local API routes (`/api/video/generate` and `/api/video/status/[job_id]`) so the client never calls Railway directly.
 

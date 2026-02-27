@@ -73,11 +73,11 @@ Client (browser)
   │
   ├─ POST /api/video/generate        (Next.js route handler)
   │      │
-  │      └─ POST Railway /generate    (forwards FormData as-is)
+  │      └─ POST Railway /video-generation/image-script-composition/jobs    (forwards FormData as-is)
   │
   └─ GET  /api/video/status/{job_id}  (Next.js route handler)
          │
-         └─ GET  Railway /status/{job_id}
+         └─ GET  Railway /video-generation/image-script-composition/jobs/{job_id}
 ```
 
 The proxy routes in `app/api/video/` exist so the client never needs to know the Railway URL. The generate proxy validates that all 4 required fields are present before forwarding. The status proxy simply passes through the job_id parameter.
@@ -88,7 +88,7 @@ The proxy routes in `app/api/video/` exist so the client never needs to know the
 
 ```bash
 curl -X POST \
-  https://video-generation-service-production-a91d.up.railway.app/generate \
+  https://video-generation-service-production-a91d.up.railway.app/video-generation/image-script-composition/jobs \
   -F "audio=@narration.mp3" \
   -F "srt=@subtitles.srt" \
   -F "original_script=This is the full narration text..." \
@@ -110,7 +110,7 @@ curl -X POST \
 
 ```bash
 # Via Railway directly
-curl https://video-generation-service-production-a91d.up.railway.app/status/JOB_ID_HERE
+curl https://video-generation-service-production-a91d.up.railway.app/video-generation/image-script-composition/jobs/JOB_ID_HERE
 
 # Via Next.js proxy
 curl http://localhost:3000/api/video/status/JOB_ID_HERE

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { VIDEO_GENERATION_API_URL } from '@/lib/config/video';
+import { VIDEO_GENERATION_API_URL, VIDEO_GENERATION_JOBS_PATH } from '@/lib/config/video';
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     forwardData.append('original_script', originalScript);
     forwardData.append('scene_data', sceneData);
 
-    const response = await fetch(`${VIDEO_GENERATION_API_URL}/generate`, {
+    const response = await fetch(`${VIDEO_GENERATION_API_URL}${VIDEO_GENERATION_JOBS_PATH}`, {
       method: 'POST',
       body: forwardData,
     });

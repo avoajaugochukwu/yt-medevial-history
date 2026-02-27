@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { VIDEO_GENERATION_API_URL } from '@/lib/config/video';
+import { VIDEO_GENERATION_API_URL, VIDEO_GENERATION_JOBS_PATH } from '@/lib/config/video';
 
 export async function GET(
   _request: NextRequest,
@@ -10,7 +10,7 @@ export async function GET(
 
     // Fetch job status to get the video URL
     const statusResponse = await fetch(
-      `${VIDEO_GENERATION_API_URL}/status/${jobId}`,
+      `${VIDEO_GENERATION_API_URL}${VIDEO_GENERATION_JOBS_PATH}/${jobId}`,
     );
 
     if (!statusResponse.ok) {
