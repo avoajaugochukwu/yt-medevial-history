@@ -25,6 +25,7 @@ import {
   RefreshCw,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Save,
   X,
   Image as ImageIcon,
@@ -49,14 +50,44 @@ const SHOT_TYPES: CinematicShotType[] = [
   'POV',
 ];
 
+function DisclosureSection({
+  title,
+  children,
+  defaultOpen = false,
+}: {
+  title: string;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+}) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
+  return (
+    <div className="border rounded-md">
+      <button
+        type="button"
+        className="flex items-center justify-between w-full px-3 py-2 text-sm font-medium text-left hover:bg-gray-50 transition-colors"
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <span>{title}</span>
+        <ChevronDown
+          className={`h-4 w-4 text-gray-500 transition-transform ${isOpen ? '' : '-rotate-90'}`}
+        />
+      </button>
+      {isOpen && <div className="px-3 pb-3">{children}</div>}
+    </div>
+  );
+}
+
 export function SceneEditor({ scene, isOpen, onClose, onNavigate }: SceneEditorProps) {
   const {
     updateStoryboardScene,
     storyboardScenes,
+    historicalTopic,
+    characterSession,
   } = useSessionStore();
 
-  const [editedPrompt, setEditedPrompt] = useState('');
-  const [isEditing, setIsEditing] = useState(false);
+  const [editedFullPrompt, setEditedFullPrompt] = useState('');
+  const [isEditingFullPrompt, setIsEditingFullPrompt] = useState(false);
   const [editedShotType, setEditedShotType] = useState<CinematicShotType | undefined>(undefined);
 
   // Derive regeneration state from the store (per-scene) instead of local state
@@ -64,13 +95,28 @@ export function SceneEditor({ scene, isOpen, onClose, onNavigate }: SceneEditorP
 
   React.useEffect(() => {
     if (scene) {
-      setEditedPrompt(scene.visual_prompt);
+      setEditedFullPrompt(scene.prompt_used || '');
       setEditedShotType(scene.shot_type);
-      setIsEditing(false);
+      setIsEditingFullPrompt(false);
     }
   }, [scene]);
 
-  const handleRegenerate = async () => {
+  const getCharacterReferences = () => {
+    return characterSession?.characters
+      .filter(
+        (c) =>
+          c.is_approved &&
+          c.reference_generation_status === 'completed' &&
+          c.reference_image_url
+      )
+      .map((c) => ({
+        name: c.name,
+        visual_description: c.visual_description,
+        reference_image_url: c.reference_image_url!,
+      })) || [];
+  };
+
+  const handleRegenerate = async (promptOverride?: string) => {
     if (!scene) return;
 
     updateStoryboardScene(scene.scene_number, {
@@ -85,10 +131,10 @@ export function SceneEditor({ scene, isOpen, onClose, onNavigate }: SceneEditorP
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          scene: {
-            ...scene,
-            visual_prompt: isEditing ? editedPrompt : scene.visual_prompt,
-          }
+          scene,
+          artStyle: historicalTopic?.artStyle,
+          characterReferences: getCharacterReferences(),
+          ...(promptOverride ? { prompt_override: promptOverride } : {}),
         }),
       });
 
@@ -96,15 +142,21 @@ export function SceneEditor({ scene, isOpen, onClose, onNavigate }: SceneEditorP
         throw new Error('Failed to regenerate scene');
       }
 
-      const { image_url, prompt_used } = await response.json();
+      const data = await response.json();
 
       updateStoryboardScene(scene.scene_number, {
-        image_url,
+        image_url: data.image_url,
         generation_status: 'completed',
         is_regenerating: false,
+        prompt_used: data.prompt_used,
+        negative_prompt_used: data.negative_prompt,
+        model_used: data.model,
+        style_category: data.style,
+        character_conditioned: data.character_conditioned,
+        character_count: data.character_count,
       });
 
-      setIsEditing(false);
+      setIsEditingFullPrompt(false);
     } catch (error) {
       console.error('Scene regeneration error:', error);
       updateStoryboardScene(scene.scene_number, {
@@ -115,12 +167,9 @@ export function SceneEditor({ scene, isOpen, onClose, onNavigate }: SceneEditorP
     }
   };
 
-  const handleSavePrompt = () => {
+  const handleSaveFullPrompt = () => {
     if (scene) {
-      updateStoryboardScene(scene.scene_number, {
-        visual_prompt: editedPrompt,
-      });
-      handleRegenerate();
+      handleRegenerate(editedFullPrompt);
     }
   };
 
@@ -142,19 +191,26 @@ export function SceneEditor({ scene, isOpen, onClose, onNavigate }: SceneEditorP
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           scene: { ...scene, shot_type: newShotType },
+          artStyle: historicalTopic?.artStyle,
+          characterReferences: getCharacterReferences(),
         }),
       });
 
       if (!response.ok) throw new Error('Failed to regenerate');
 
-      const { image_url, prompt_used } = await response.json();
+      const data = await response.json();
 
       updateStoryboardScene(scene.scene_number, {
-        image_url,
-        visual_prompt: prompt_used,
+        image_url: data.image_url,
         shot_type: newShotType,
         generation_status: 'completed',
         is_regenerating: false,
+        prompt_used: data.prompt_used,
+        negative_prompt_used: data.negative_prompt,
+        model_used: data.model,
+        style_category: data.style,
+        character_conditioned: data.character_conditioned,
+        character_count: data.character_count,
       });
     } catch (error) {
       console.error('Shot type change error:', error);
@@ -174,44 +230,43 @@ export function SceneEditor({ scene, isOpen, onClose, onNavigate }: SceneEditorP
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl">
+      <DialogContent className="max-w-4xl mx-16 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span>Scene {scene.scene_number}</span>
-              {scene.scene_type === 'map' && (
-                <Badge variant="secondary" className="flex items-center gap-1">
-                  <Map className="h-3 w-3" />
-                  Map
-                </Badge>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onNavigate('prev')}
-                disabled={!hasPrevious}
-              >
-                <ChevronLeft className="h-4 w-4" />
-                Previous
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onNavigate('next')}
-                disabled={!hasNext}
-              >
-                Next
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
+          <DialogTitle className="flex items-center gap-2">
+            <span>Scene {scene.scene_number}</span>
+            {scene.scene_type === 'map' && (
+              <Badge variant="secondary" className="flex items-center gap-1">
+                <Map className="h-3 w-3" />
+                Map
+              </Badge>
+            )}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="relative">
+          {/* Side chevron navigation */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute -left-12 top-1/2 -translate-y-1/2 rounded-full h-10 w-10 disabled:opacity-30"
+            onClick={() => onNavigate('prev')}
+            disabled={!hasPrevious}
+          >
+            <ChevronLeft className="h-6 w-6" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute -right-12 top-1/2 -translate-y-1/2 rounded-full h-10 w-10 disabled:opacity-30"
+            onClick={() => onNavigate('next')}
+            disabled={!hasNext}
+          >
+            <ChevronRight className="h-6 w-6" />
+          </Button>
+
+        <div className="space-y-3">
           {/* Scene Image */}
-          <div className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden">
+          <div className="relative aspect-video max-h-[300px] bg-gray-100 rounded-lg overflow-hidden">
             {isRegenerating ? (
               <div className="flex items-center justify-center h-full">
                 <LoadingSpinner size="lg" text="Regenerating scene..." />
@@ -237,41 +292,7 @@ export function SceneEditor({ scene, isOpen, onClose, onNavigate }: SceneEditorP
             )}
           </div>
 
-          {/* Script Snippet */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Scene Script:</label>
-            <div className="p-3 bg-gray-50 rounded-md">
-              <p className="text-sm">{scene.script_snippet}</p>
-            </div>
-          </div>
-
-          {/* Map Data (if map scene) */}
-          {scene.scene_type === 'map' && scene.map_data && (
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Map Information:</label>
-              <div className="p-3 bg-blue-50 rounded-md space-y-2">
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div>
-                    <span className="font-medium">Location:</span> {scene.map_data.location}
-                  </div>
-                  <div>
-                    <span className="font-medium">Time Period:</span> {scene.map_data.time_period}
-                  </div>
-                </div>
-                <div className="text-sm">
-                  <span className="font-medium">Focus:</span> {scene.map_data.geographic_focus}
-                </div>
-                {scene.map_data.territories && scene.map_data.territories.length > 0 && (
-                  <div className="text-sm">
-                    <span className="font-medium">Territories:</span>{' '}
-                    {scene.map_data.territories.join(', ')}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Shot Type Selector (for visual scenes only - not maps or subscribe) */}
+          {/* Shot Type Selector (for visual scenes only) */}
           {scene.scene_type !== 'map' && (
             <div className="space-y-2">
               <label className="text-sm font-medium flex items-center gap-2">
@@ -300,58 +321,132 @@ export function SceneEditor({ scene, isOpen, onClose, onNavigate }: SceneEditorP
             </div>
           )}
 
-          {/* Visual Prompt */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-medium">Visual Description:</label>
-              {!isEditing && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsEditing(true)}
-                >
-                  Edit Description
-                </Button>
-              )}
-            </div>
-
-            {isEditing ? (
-              <div className="space-y-2">
-                <Textarea
-                  value={editedPrompt}
-                  onChange={(e) => setEditedPrompt(e.target.value)}
-                  className="min-h-[100px]"
-                  placeholder="Describe the visual scene..."
-                />
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    onClick={handleSavePrompt}
-                    disabled={isRegenerating}
-                  >
-                    <Save className="h-4 w-4 mr-1" />
-                    Save & Regenerate
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      setIsEditing(false);
-                      setEditedPrompt(scene.visual_prompt);
-                    }}
-                  >
-                    <X className="h-4 w-4 mr-1" />
-                    Cancel
-                  </Button>
+          {/* Map Data (if map scene) */}
+          {scene.scene_type === 'map' && scene.map_data && (
+            <div className="p-3 bg-blue-50 rounded-md space-y-2">
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div>
+                  <span className="font-medium">Location:</span> {scene.map_data.location}
+                </div>
+                <div>
+                  <span className="font-medium">Time Period:</span> {scene.map_data.time_period}
                 </div>
               </div>
-            ) : (
-              <div className="p-3 bg-gray-50 rounded-md">
-                <p className="text-sm">{scene.visual_prompt}</p>
+              <div className="text-sm">
+                <span className="font-medium">Focus:</span> {scene.map_data.geographic_focus}
               </div>
-            )}
-          </div>
+              {scene.map_data.territories && scene.map_data.territories.length > 0 && (
+                <div className="text-sm">
+                  <span className="font-medium">Territories:</span>{' '}
+                  {scene.map_data.territories.join(', ')}
+                </div>
+              )}
+            </div>
+          )}
 
+          {/* Collapsible artifact sections */}
+          <DisclosureSection title="Script">
+            <p className="text-sm whitespace-pre-wrap text-gray-700">{scene.script_snippet}</p>
+          </DisclosureSection>
+
+          <DisclosureSection title="Visual Description">
+            <p className="text-sm text-gray-700">{scene.visual_prompt}</p>
+          </DisclosureSection>
+
+          <DisclosureSection title="Full Prompt">
+            {scene.prompt_used ? (
+              isEditingFullPrompt ? (
+                <div className="space-y-2">
+                  <Textarea
+                    value={editedFullPrompt}
+                    onChange={(e) => setEditedFullPrompt(e.target.value)}
+                    className="min-h-[120px] text-xs font-mono"
+                    placeholder="Edit the full prompt sent to the image model..."
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={handleSaveFullPrompt}
+                      disabled={isRegenerating}
+                    >
+                      <Save className="h-4 w-4 mr-1" />
+                      Save & Regenerate
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setIsEditingFullPrompt(false);
+                        setEditedFullPrompt(scene.prompt_used || '');
+                      }}
+                    >
+                      <X className="h-4 w-4 mr-1" />
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-xs font-mono whitespace-pre-wrap text-gray-600 bg-gray-50 p-2 rounded">
+                    {scene.prompt_used}
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setEditedFullPrompt(scene.prompt_used || '');
+                      setIsEditingFullPrompt(true);
+                    }}
+                  >
+                    Edit Prompt
+                  </Button>
+                </div>
+              )
+            ) : (
+              <p className="text-sm text-gray-400 italic">Not yet available - generate an image first.</p>
+            )}
+          </DisclosureSection>
+
+          {scene.negative_prompt_used && (
+            <DisclosureSection title="Negative Prompt">
+              <p className="text-xs font-mono whitespace-pre-wrap text-gray-600 bg-gray-50 p-2 rounded">
+                {scene.negative_prompt_used}
+              </p>
+            </DisclosureSection>
+          )}
+
+          {(scene.model_used || scene.style_category) && (
+            <DisclosureSection title="Generation Info">
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                {scene.model_used && (
+                  <div>
+                    <span className="font-medium text-gray-500">Model:</span>{' '}
+                    <span className="font-mono text-xs">{scene.model_used}</span>
+                  </div>
+                )}
+                {scene.style_category && (
+                  <div>
+                    <span className="font-medium text-gray-500">Style:</span>{' '}
+                    {scene.style_category}
+                  </div>
+                )}
+                {scene.character_conditioned !== undefined && (
+                  <div>
+                    <span className="font-medium text-gray-500">Character conditioned:</span>{' '}
+                    {scene.character_conditioned ? 'Yes' : 'No'}
+                  </div>
+                )}
+                {scene.character_count !== undefined && scene.character_count > 0 && (
+                  <div>
+                    <span className="font-medium text-gray-500">Characters:</span>{' '}
+                    {scene.character_count}
+                  </div>
+                )}
+              </div>
+            </DisclosureSection>
+          )}
+
+        </div>
         </div>
 
         <DialogFooter>
@@ -362,8 +457,8 @@ export function SceneEditor({ scene, isOpen, onClose, onNavigate }: SceneEditorP
             Close
           </Button>
           <Button
-            onClick={handleRegenerate}
-            disabled={isRegenerating || isEditing}
+            onClick={() => handleRegenerate()}
+            disabled={isRegenerating || isEditingFullPrompt}
           >
             <RefreshCw className="h-4 w-4 mr-1" />
             Regenerate Image

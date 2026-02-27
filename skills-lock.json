@@ -5,6 +5,11 @@
       "source": "jeffallan/claude-skills",
       "sourceType": "github",
       "computedHash": "9c8c07bda69e9c28ef291dbffac9beed05cb015970bffcd3102f5dc3410bcf73"
+    },
+    "frontend-ui-ux-engineer": {
+      "source": "404kidwiz/claude-supercode-skills",
+      "sourceType": "github",
+      "computedHash": "074176a7c86baeea322124c5d3dd0104561d752ca408ff994ae742b61c19ca66"
     }
   }
 }

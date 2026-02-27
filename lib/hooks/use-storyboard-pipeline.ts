@@ -77,6 +77,12 @@ export function useStoryboardPipeline() {
           updateStoryboardScene(scene.scene_number, {
             image_url: data.image_url,
             generation_status: 'completed',
+            prompt_used: data.prompt_used,
+            negative_prompt_used: data.negative_prompt,
+            model_used: data.model,
+            style_category: data.style,
+            character_conditioned: data.character_conditioned,
+            character_count: data.character_count,
           });
         }
         return true;

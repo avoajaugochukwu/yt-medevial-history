@@ -154,6 +154,13 @@ export interface StoryboardScene extends Scene {
   generation_status: 'pending' | 'generating' | 'completed' | 'error';
   error_message?: string;
   is_regenerating?: boolean;
+  // Generation artifacts
+  prompt_used?: string;
+  negative_prompt_used?: string;
+  model_used?: string;
+  style_category?: string;
+  character_conditioned?: boolean;
+  character_count?: number;
 }
 
 // Workflow Management

@@ -24,7 +24,7 @@ interface CharacterReference {
 export async function POST(request: NextRequest) {
   try {
     const requestData = await request.json();
-    const { scene, artStyle, characterReferences } = requestData as {
+    const { scene, artStyle, characterReferences, prompt_override } = requestData as {
       scene: {
         scene_number: number;
         visual_prompt?: string;
@@ -33,6 +33,7 @@ export async function POST(request: NextRequest) {
       };
       artStyle?: string;
       characterReferences?: CharacterReference[];
+      prompt_override?: string;
     };
 
     if (!scene) {
@@ -68,10 +69,12 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Final prompt with optional character context
-    const finalPrompt = hasCharacterReferences
-      ? `${styledPrompt}${characterContext}`
-      : styledPrompt;
+    // Final prompt: use prompt_override if provided (user edited full prompt), otherwise build normally
+    const finalPrompt = prompt_override
+      ? prompt_override
+      : hasCharacterReferences
+        ? `${styledPrompt}${characterContext}`
+        : styledPrompt;
 
     const sceneTypeLabel = isMapScene ? 'MAP' : 'VISUAL';
     const styleDescription = artStyle ? 'AI-generated era-appropriate' : 'default oil painting';
@@ -128,6 +131,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       image_url: imageUrl,
       prompt_used: finalPrompt,
+      negative_prompt: negativePrompt,
       aspect_ratio: '16:9',
       model: modelUsed,
       style: isMapScene ? 'historical-map' : 'oil-painting-historical',
